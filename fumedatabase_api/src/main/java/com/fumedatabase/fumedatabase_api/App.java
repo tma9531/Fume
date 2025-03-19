@@ -1,4 +1,4 @@
-package fumedatabase_api;
+package com.fumedatabase.fumedatabase_api;
 
 /**
  * Hello world!
