@@ -85,11 +85,12 @@ public class PTUI {
     private static void displayMainMenu(Connection conn){
         while (true) {
             System.out.println("Main Menu: ");
-            System.out.println("0 - ADD COMMAND HERE");
+            System.out.println("0 - Create a collection");
             System.out.println("9 - Logout");
             int choice = Integer.parseInt(scan.nextLine().trim());
             switch (choice) {
                 case 0:
+                    createCollection(conn);
                     break;
                 case 1:
                     break;
@@ -103,6 +104,8 @@ public class PTUI {
             }
         }
     }
+
+    // USER METHODS FOR LOGIN SCREEN
 
     /**
      * Creates a new user by prompting for username, password, and email.
@@ -138,6 +141,24 @@ public class PTUI {
             }
         } catch (SQLException e) {
             System.err.println("Error during login: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Create a new collection by prompting for the collection name.
+     * @param conn the Connection object representing the database connection
+     * @throws SQLException if an error occurs while saving the collection to the database
+     */
+    private static void createCollection(Connection conn){
+        System.out.print("Enter collection name: ");
+        String collectionName = scan.nextLine().trim();
+        Collection collection = new Collection(collectionName, currentUser.getUsername());
+        try{
+            collection.saveToDatabase(conn);
+            System.out.println("Collection created successfully with CN: " + collection.getCnr() + ".");
+        }
+        catch (SQLException e){
+            System.err.println("Error creating collection: " + e.getMessage());
         }
     }
 }
