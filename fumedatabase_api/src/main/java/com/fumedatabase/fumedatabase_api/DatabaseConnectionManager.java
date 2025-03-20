@@ -3,6 +3,7 @@ package com.fumedatabase.fumedatabase_api;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Properties;
+import java.sql.SQLException;
 
 public class DatabaseConnectionManager {
     private Connection conn;
@@ -40,7 +41,7 @@ public class DatabaseConnectionManager {
      * Closes the current database connection if it is open.
      * @throws Exception if an error occurs while closing the connection
      */
-    public void disconnect() throws Exception {
+    public void disconnect() throws SQLException {
         if (conn != null && !conn.isClosed()) {
             conn.close();
             System.out.println("Database connection closed");
