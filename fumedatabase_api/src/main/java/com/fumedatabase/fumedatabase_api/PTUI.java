@@ -1,26 +1,25 @@
 package com.fumedatabase.fumedatabase_api;
 
-
 import java.sql.SQLException;
 import java.util.Scanner;
+import java.io.BufferedReader;
+import java.io.FileReader;
 
 import com.jcraft.jsch.JSchException;
 
 
-public class PostgresSSH {
+public class PTUI {
     public static void main(String[] args) throws SQLException {
-        Scanner scanner = new Scanner(System.in);
-
-        System.out.print("Enter your CS username: ");
-        String user = scanner.nextLine().trim();
-
-        System.out.print("Enter your CS password: ");
-        String password = scanner.nextLine().trim();
-
-        SSHConnectionManager sshManager = new SSHConnectionManager();
-        DatabaseConnectionManager dbManager = new DatabaseConnectionManager();
-        
         try {
+            FileReader read = new FileReader("/login.txt");
+            BufferedReader br = new BufferedReader(read);
+            Scanner scanner = new Scanner(System.in);
+
+            String user = br.readLine().trim(); // Read username from file
+            String password = br.readLine().trim(); // Read password from file
+            SSHConnectionManager sshManager = new SSHConnectionManager();
+            DatabaseConnectionManager dbManager = new DatabaseConnectionManager();
+
             // Establish SSH connection and port forwarding
             sshManager.connect(user, password);
             
