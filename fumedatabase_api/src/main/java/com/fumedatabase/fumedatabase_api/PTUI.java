@@ -10,7 +10,7 @@ import com.jcraft.jsch.JSchException;
 
 public class PTUI {
 
-    final static String LOGIN_DETAILS_PATH = "./docs/login.txt";
+    final static String LOGIN_DETAILS_PATH = "./fumedatabase_api/docs/login.txt";
 
     public static void main(String[] args) throws SQLException {
         SSHConnectionManager sshManager = new SSHConnectionManager();
