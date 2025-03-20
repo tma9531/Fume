@@ -75,7 +75,9 @@ public class PTUI {
         String username = scan.nextLine().trim();
         System.out.print("Enter password: ");
         String password = scan.nextLine().trim();
-        User user = new User(username, password);
+        System.out.print("Enter email: ");
+        String email = scan.nextLine().trim();
+        User user = new User(username, password, email);
         try {
             user.saveToDatabase(conn);
             System.out.println("User created successfully.");

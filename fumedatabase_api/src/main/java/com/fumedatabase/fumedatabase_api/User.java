@@ -10,12 +10,14 @@ public class User {
     private String password;
     private LocalDate creationDate;
     private LocalDate lastAccessDate;
+    private String email;
 
-    public User(String username, String password) {
+    public User(String username, String password, String email) {
         this.username = username;
         this.password = password;
         this.creationDate = LocalDate.now();
         this.lastAccessDate = LocalDate.now();
+        this.email = email;
     }
 
     public String getUsername() {
@@ -34,13 +36,18 @@ public class User {
         return lastAccessDate;
     }
 
+    public String getEmail(){
+        return email;
+    }
+
     public void saveToDatabase(Connection conn) throws SQLException {
-        String sql = "insert into users (username, password, creationDate, lastAccessDate) values (?, ?, ?, ?)";
+        String sql = "insert into users (username, password, creationdate, lastaccessdate, email) values (?, ?, ?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, username);
             pstmt.setString(2, password);
             pstmt.setDate(3, java.sql.Date.valueOf(creationDate));
             pstmt.setDate(4, java.sql.Date.valueOf(lastAccessDate));
+            pstmt.setString(5, email);
             pstmt.executeUpdate();
         }
     }
