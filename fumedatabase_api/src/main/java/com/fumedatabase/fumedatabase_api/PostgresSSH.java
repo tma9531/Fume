@@ -61,7 +61,8 @@ public class PostgresSSH {
             Class.forName(driverName);
             conn = DriverManager.getConnection(url, props);
             System.out.println("Database connection established");
-
+            
+            // Feel free to reformat this as yous see fit, but this is a simple way to get user input and execute SQL queries
             while (true){
                 System.out.print("Enter SQL query (or 'exit' to quit): ");
                 String sql = scanner.nextLine().trim();
