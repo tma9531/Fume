@@ -132,11 +132,7 @@ public class PTUI {
             currentUser = User.verifyCredentials(conn, username, password); 
             if (currentUser != null) {
                 System.out.println("Login successful. Welcome " + currentUser.getUsername() + "!");
-                String sql = "update users set lastaccessdate = current_date where username = ?";
-                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                    pstmt.setString(1, username);
-                    pstmt.executeUpdate();
-                }
+                currentUser.updateLastAccessDate(conn); // update last access date
             } else {
                 System.out.println("Invalid username or password. Please try again.");
             }

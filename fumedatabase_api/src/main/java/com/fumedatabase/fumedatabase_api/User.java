@@ -96,4 +96,17 @@ public class User {
             }
         }
     }
+
+    /**
+     * Updates the last access date of the user in the database to the current date
+     * @param conn the Connection object representing the database connection
+     * @throws SQLException
+     */
+    public void updateLastAccessDate(Connection conn) throws SQLException {
+        String sql = "update users set lastaccessdate = current_date where username = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, username);
+            pstmt.executeUpdate();
+        }
+    }
 }
