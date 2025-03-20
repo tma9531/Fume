@@ -7,7 +7,7 @@ import java.util.Scanner;
 import com.jcraft.jsch.JSchException;
 
 
-public class PTUI {
+public class PostgresSSH {
     public static void main(String[] args) throws SQLException {
         Scanner scanner = new Scanner(System.in);
 
