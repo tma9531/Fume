@@ -48,7 +48,6 @@ public class PTUI {
             } finally {
                 sshManager.disconnect();
                 scanner.close();
-                System.out.println("Scanner closed");
             }
         }
     }
