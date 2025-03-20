@@ -11,20 +11,17 @@ public class User {
     private String password;
     private LocalDate creationDate;
     private LocalDate lastAccessDate;
-    private String email;
 
     /**
      * Constructor to initialize a User object with the provided username, password, and email.
      * @param username the username of the user
      * @param password the password of the user
-     * @param email the email of the user
      */
-    public User(String username, String password, String email) {
+    public User(String username, String password) {
         this.username = username;
         this.password = password;
         this.creationDate = LocalDate.now();
         this.lastAccessDate = LocalDate.now();
-        this.email = email;
     }
 
     /**
@@ -60,27 +57,18 @@ public class User {
     }
 
     /**
-     * Returns the email address of the user.
-     * @return the email address of the user
-     */
-    public String getEmail(){
-        return email;
-    }
-
-    /**
      * Saves the user information to the database.
      * @param conn the Connection object representing the database connection
      * @throws SQLException
      */
     public void saveToDatabase(Connection conn) throws SQLException {
         // sql command to insert a new user into the database
-        String sql = "insert into users (username, password, creationdate, lastaccessdate, email) values (?, ?, ?, ?, ?)";
+        String sql = "insert into users (username, password, creationdate, lastaccessdate) values (?, ?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, username);
             pstmt.setString(2, password);
             pstmt.setDate(3, java.sql.Date.valueOf(creationDate));
             pstmt.setDate(4, java.sql.Date.valueOf(lastAccessDate));
-            pstmt.setString(5, email);
             pstmt.executeUpdate();
         }
     }
@@ -101,8 +89,7 @@ public class User {
             if (rs.next()) {
                 return new User(
                     rs.getString("username"),
-                    rs.getString("password"),
-                    rs.getString("email")
+                    rs.getString("password")
                 );
             } else {
                 return null; // Invalid credentials
