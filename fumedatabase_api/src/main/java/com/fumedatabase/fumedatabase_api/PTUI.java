@@ -5,13 +5,20 @@ import java.io.FileReader;
 import java.sql.SQLException;
 import java.util.Scanner;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 
 import com.jcraft.jsch.JSchException;
 
 public class PTUI {
 
     final static String LOGIN_DETAILS_PATH = "./fumedatabase_api/docs/login.txt";
+    private static User currentUser = null; // Placeholder for the current user
+    static Scanner scan = new Scanner(System.in);
 
+    /**
+     * Main method to establish SSH and database connections, and display the main menu.
+     * @param args command line arguments (not used)
+     */
     public static void main(String[] args) throws SQLException {
         SSHConnectionManager sshManager = new SSHConnectionManager();
         DatabaseConnectionManager dbManager = new DatabaseConnectionManager();
@@ -27,11 +34,11 @@ public class PTUI {
             var conn = dbManager.getConnection();
             if (conn != null) {
                 System.out.println("Database connection established successfully.");
-                displayMainMenu(conn);
+                displayLoginMenu(conn);
             } else {
                 System.err.println("Failed to establish database connection.");
             }
-            
+            scan.close();
             br.close();
             read.close();
         } catch (JSchException e) {
@@ -47,21 +54,50 @@ public class PTUI {
         }
     }
 
-    private static void displayMainMenu(Connection conn){
-        Scanner scan = new Scanner(System.in);
-        while (true) {
-            System.out.println("Main Menu: ");
+    /**
+     * Displays a main menu for users to do specific task
+     * @param conn the Connection object representing the database connection
+     */
+    private static void displayLoginMenu(Connection conn){
+        while (currentUser == null) {
+            System.out.println("Login Menu: ");
             System.out.println("0 - Create an account");
+            System.out.println("1 - Login");
             System.out.println("9 - Exit");
             int choice = Integer.parseInt(scan.nextLine().trim());
             switch (choice) {
                 case 0:
-                    // Implement account creation logic here
                     createUser(conn);
                     break;
+                case 1:
+                    login(conn);
+                    break;
                 case 9:
-                    System.out.println("Exiting...");
-                    scan.close();
+                    System.out.println("Exiting...");;
+                    return;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        }
+        displayMainMenu(conn);
+    }
+
+    private static void displayMainMenu(Connection conn){
+        while (true) {
+            System.out.println("Main Menu: ");
+            System.out.println("0 - ADD COMMAND HERE");
+            System.out.println("1 - ADD COMMAND HERE");
+            System.out.println("9 - Logout");
+            int choice = Integer.parseInt(scan.nextLine().trim());
+            switch (choice) {
+                case 0:
+                    break;
+                case 1:
+                    break;
+                case 9:
+                    System.out.println("Logging out...");
+                    currentUser = null;
+                    displayLoginMenu(conn);
                     return;
                 default:
                     System.out.println("Invalid choice. Please try again.");
@@ -69,8 +105,12 @@ public class PTUI {
         }
     }
 
+    /**
+     * Creates a new user by prompting for username, password, and email.
+     * @param conn the Connection object representing the database connection
+     * @throws SQLException if an error occurs while saving the user to the database
+     */
     private static void createUser(Connection conn){
-        Scanner scan = new Scanner(System.in);
         System.out.print("Enter username: ");
         String username = scan.nextLine().trim();
         System.out.print("Enter password: ");
@@ -84,6 +124,27 @@ public class PTUI {
         } catch (SQLException e) {
             System.err.println("Error creating user: " + e.getMessage());
         }
-        scan.close();
+    }
+
+    private static void login(Connection conn){
+        System.out.print("Enter username: ");
+        String username = scan.nextLine().trim();
+        System.out.print("Enter password: ");
+        String password = scan.nextLine().trim();
+        try {
+            currentUser = User.verifyCredentials(conn, username, password); 
+            if (currentUser != null) {
+                System.out.println("Login successful. Welcome " + currentUser.getUsername() + "!");
+                String sql = "update users set lastaccessdate = current_date where username = ?";
+                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.setString(1, username);
+                    pstmt.executeUpdate();
+                }
+            } else {
+                System.out.println("Invalid username or password. Please try again.");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error during login: " + e.getMessage());
+        }
     }
 }
