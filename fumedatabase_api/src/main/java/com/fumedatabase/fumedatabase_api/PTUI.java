@@ -84,5 +84,6 @@ public class PTUI {
         } catch (SQLException e) {
             System.err.println("Error creating user: " + e.getMessage());
         }
+        scan.close();
     }
 }
