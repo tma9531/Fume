@@ -16,7 +16,7 @@ public class SSHConnectionManager {
      * @param lport the local port to forward from the remote machine
      * @throws Exception
      */
-    public void connect(String user, String password, int rport, int lport) throws Exception {
+    public void connect(String user, String password) throws Exception {
         Properties config = new Properties();
         config.put("StrictHostKeyChecking", "no");
         JSch jsch = new JSch();
@@ -26,7 +26,7 @@ public class SSHConnectionManager {
         session.setConfig("PreferredAuthentications", "publickey,keyboard-interactive,password");
         session.connect();
         System.out.println("Connected");
-        session.setPortForwardingL(lport, "127.0.0.1", rport);
+        session.setPortForwardingL(5432, "127.0.0.1", 5432);
         System.out.println("Port Forwarded");
     }
 

@@ -12,15 +12,13 @@ public class DatabaseConnectionManager {
      * Establishes a connection to the PostgreSQL database using the provided credentials and port.
      * @param user the username of the database user
      * @param password the password of the database user
-     * @param databaseName the name of the database to connect to
      * @param lport the local port to forward to the remote PostgreSQL server
      * @throws Exception if an error occurs while connecting to the database
      */
-    public void connect(String user, String password, String databaseName, int lport) throws Exception {
-        // Assigned port could be different from 5432 but rarely happens
-        int assigned_port = lport; // Assuming lport is the port forwarded by SSH
+    public void connect(String user, String password) throws Exception {
+        int assigned_port = 5432; // Assuming lport is the port forwarded by SSH
         String driverName = "org.postgresql.Driver";
-        String url = "jdbc:postgresql://127.0.0.1:"+ assigned_port + "/" + databaseName;
+        String url = "jdbc:postgresql://127.0.0.1:"+ assigned_port + "/" + "p32001_11";
         Properties props = new Properties();
         props.put("user", user);
         props.put("password", password);
