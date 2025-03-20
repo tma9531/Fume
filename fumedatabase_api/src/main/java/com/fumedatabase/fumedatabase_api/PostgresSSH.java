@@ -36,7 +36,6 @@ public class PostgresSSH {
         String driverName = "org.postgresql.Driver";
         Connection conn = null;
         Session session = null;
-        scanner.close();
         
         try {
             java.util.Properties config = new java.util.Properties();
@@ -63,7 +62,30 @@ public class PostgresSSH {
             conn = DriverManager.getConnection(url, props);
             System.out.println("Database connection established");
 
-            // Do something with the database....
+            while (true){
+                System.out.print("Enter SQL query (or 'exit' to quit): ");
+                String sql = scanner.nextLine().trim();
+                if (sql.equalsIgnoreCase("exit")) {
+                    break;
+                }
+                if (!sql.isEmpty()) {
+                    try (var stmt = conn.createStatement()) {
+                        boolean hasResultSet = stmt.execute(sql);
+                        if (hasResultSet) {
+                            try (var rs = stmt.getResultSet()) {
+                                while (rs.next()) {
+                                    System.out.println(rs.getString(1)); // Print first column of each row
+                                }
+                            }
+                        } else {
+                            int updateCount = stmt.getUpdateCount();
+                            System.out.println("Update count: " + updateCount);
+                        }
+                    } catch (SQLException e) {
+                        System.err.println("SQL Error: " + e.getMessage());
+                    }
+                }
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -76,6 +98,8 @@ public class PostgresSSH {
                 System.out.println("Closing SSH Connection");
                 session.disconnect();
             }
+            scanner.close();
+            System.out.println("Scanner closed");
         }
     }
 }
