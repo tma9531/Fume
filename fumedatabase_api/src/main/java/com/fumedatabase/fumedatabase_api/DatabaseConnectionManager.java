@@ -2,8 +2,8 @@ package com.fumedatabase.fumedatabase_api;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.util.Properties;
 import java.sql.SQLException;
+import java.util.Properties;
 
 public class DatabaseConnectionManager {
     private Connection conn;
@@ -16,6 +16,7 @@ public class DatabaseConnectionManager {
      * @throws Exception if an error occurs while connecting to the database
      */
     public void connect(String user, String password) throws Exception {
+        System.out.println("Connecting to database...");
         int assigned_port = 5432; // Assuming lport is the port forwarded by SSH
         String driverName = "org.postgresql.Driver";
         String url = "jdbc:postgresql://127.0.0.1:"+ assigned_port + "/" + "p32001_11";
@@ -24,7 +25,6 @@ public class DatabaseConnectionManager {
         props.put("password", password);
         Class.forName(driverName);
         conn = DriverManager.getConnection(url, props);
-        System.out.println("Database connection established");
     }
 
     /**

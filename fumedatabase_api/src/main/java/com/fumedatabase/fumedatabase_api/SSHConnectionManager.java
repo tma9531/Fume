@@ -17,6 +17,7 @@ public class SSHConnectionManager {
      * @throws Exception
      */
     public void connect(String user, String password) throws Exception {
+        System.out.println("Logging in to SSH...");
         Properties config = new Properties();
         config.put("StrictHostKeyChecking", "no");
         JSch jsch = new JSch();

@@ -4,6 +4,8 @@ package com.fumedatabase.fumedatabase_api;
 import java.sql.SQLException;
 import java.util.Scanner;
 
+import com.jcraft.jsch.JSchException;
+
 
 public class PTUI {
     public static void main(String[] args) throws SQLException {
@@ -37,9 +39,13 @@ public class PTUI {
                 System.err.println("Failed to establish database connection.");
             }
 
-        } catch (Exception e) {
+        } catch (JSchException e) {
+            System.out.println("Bad Credentials");
+        } 
+        catch (Exception e) {
             e.printStackTrace();
-        } finally {
+        }
+        finally {
             try{
                 // Disconnect from the database and SSH session
                 dbManager.disconnect();
