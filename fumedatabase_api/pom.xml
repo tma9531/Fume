@@ -40,11 +40,19 @@
       <artifactId>junit-jupiter-params</artifactId>
       <scope>test</scope>
     </dependency>
+
     <dependency>
-  			<groupId>com.jcraft</groupId>
-  			<artifactId>jsch</artifactId>
-  			<version>0.2.24</version>
-		</dependency>
+      <groupId>com.github.mwiede</groupId>
+      <artifactId>jsch</artifactId>
+      <version>0.2.24</version>
+    </dependency>
+    
+    <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>42.7.5</version>
+    </dependency>
+        
   </dependencies>
 
   <build>
