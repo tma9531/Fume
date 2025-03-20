@@ -86,7 +86,6 @@ public class PTUI {
         while (true) {
             System.out.println("Main Menu: ");
             System.out.println("0 - ADD COMMAND HERE");
-            System.out.println("1 - ADD COMMAND HERE");
             System.out.println("9 - Logout");
             int choice = Integer.parseInt(scan.nextLine().trim());
             switch (choice) {
