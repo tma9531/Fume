@@ -117,8 +117,6 @@ public class VideoGame {
             params.add("%" + genre + "%");
         }
         sql += "GROUP BY vg.title, vg.esrbrating ORDER BY vg.title ASC";
-        System.out.println(sql);
-        System.out.println(params);
 
         PreparedStatement pstmt = conn.prepareStatement(sql);
         for (int i = 0; i < params.size(); i++) {

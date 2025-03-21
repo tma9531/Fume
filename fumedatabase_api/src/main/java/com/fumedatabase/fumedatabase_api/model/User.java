@@ -132,4 +132,16 @@ public class User {
             e.printStackTrace();
         }
     }
+
+    public void rateVideoGame(Connection conn, VideoGame game, int rating) {
+        String sql = "INSERT INTO rates VALUES (?, ?, ?)";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, username);
+            pstmt.setInt(2, game.getVgnr());
+            pstmt.setInt(3, rating);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }

@@ -86,7 +86,9 @@ public class PTUI {
                     System.out.println("Invalid choice. Please try again.");
             }
         }
-        displayMainMenu(conn);
+        if (currentUser != null) {
+            displayMainMenu(conn);
+        }
     }
 
     private static void displayMainMenu(Connection conn) {
@@ -99,7 +101,7 @@ public class PTUI {
             System.out.println("[2] - My platforms");
             System.out.println("[3] - My followers");
             System.out.println("[4] - Following");
-            System.out.println("[5] - Search video games");
+            System.out.println("[5] - Rate a video game");
             System.out.println("...");
             System.out.println("[9] - Logout");
             int choice = Integer.parseInt(scan.nextLine().trim());
@@ -165,7 +167,7 @@ public class PTUI {
                     break;
                 }
                 Collection collection = collections.get(i);
-                System.out.println("[" + i + "] - " + String.format("%-" + maxCollectionNameLength + "s", collection.getName()) + 
+                System.out.println("[" + (i % 6) + "] - " + String.format("%-" + maxCollectionNameLength + "s", collection.getName()) + 
                                    String.format("%-" + maxCollectionNumGamesLength + "s", collection.getNumGames() + " games") +
                                    (collection.getTotalPlayTime() / 60) + ":" + (collection.getTotalPlayTime() % 60) + " play time");
             }
@@ -186,7 +188,7 @@ public class PTUI {
                 case 3:
                 case 4:
                 case 5:
-                    System.out.println("You selected collection " + choice + ": " + collections.get(choice).getName());
+                    System.out.println("You selected collection " + choice + ": " + collections.get(choice + page * 6).getName());
                     break;
                 case 6:
                     if (page > 0) {
@@ -203,7 +205,7 @@ public class PTUI {
                     break;
                 case 9:
                     System.out.println("Returning to main menu...");
-                    displayLoginMenu(conn);
+                    displayMainMenu(conn);
                     return;
                 default:
                     System.out.println("Invalid choice. Please try again.");
@@ -400,6 +402,7 @@ public class PTUI {
         }
         return -1; // Platform not found
     }
+
     // VIDEO GAME METHODS FOR MAIN MENU
 
     /**
@@ -408,7 +411,7 @@ public class PTUI {
      * @throws SQLException if an error occurs while searching for video games in the database
      */
     private static void searchAllVideoGames(Connection conn) {
-        System.out.print("Enter a video game title, a part of a title, or press ENTER to skip: ");
+        System.out.print("\nEnter a video game title, a part of a title, or press ENTER to skip: ");
         String title = scan.nextLine().trim();
         System.out.print("Enter a platform or press ENTER to skip: ");
         String platform = scan.nextLine().trim();
@@ -426,14 +429,86 @@ public class PTUI {
         float upperPrice = upperPriceStr.isEmpty() ? -1 : Float.parseFloat(upperPriceStr);
         System.out.print("Enter a genre or press ENTER to skip: ");
         String genre = scan.nextLine().trim();
-        try {
-            List<VideoGame> videoGames = VideoGame.searchVideoGames(conn, title, platform, lowerReleaseDate, upperReleaseDate, developerName, lowerPrice, upperPrice, genre);
-            System.out.println("All video games with your search constraints:");
-            for (VideoGame game : videoGames) {
-                System.out.println("\tTitle: " + game.getTitle() + "\t\t\tESRB Rating: " + game.getEsrbRating());
+
+        int page = 0;
+        int numPages = 0;
+        while (true) {
+            List<VideoGame> videoGames = new ArrayList<>();
+            try {
+                videoGames = VideoGame.searchVideoGames(conn, title, platform, lowerReleaseDate, upperReleaseDate, developerName, lowerPrice, upperPrice, genre);
+                numPages = (videoGames.size() / 7) + (videoGames.size() % 7 == 0 ? 0 : 1);
+            } catch (SQLException e) {
+                System.err.println("Error retrieving video games: " + e.getMessage());
             }
-        } catch (SQLException e) {
-            System.err.println("Error searching for video games: " + e.getMessage());
+            int maxVideoGameTitleLength = 0;
+            for (VideoGame videoGame : videoGames) {
+                if (videoGame.getTitle().length() > maxVideoGameTitleLength) {
+                    maxVideoGameTitleLength = videoGame.getTitle().length();
+                }
+            }
+            maxVideoGameTitleLength += 2; // Add padding
+            System.out.println("\nSelect the game you wish to rate.");
+            System.out.println("Video games that matched your search:");
+            System.out.println("Page (" + (page + 1) + "/" + numPages + ")");
+            if (videoGames.isEmpty()) {
+                System.out.println("No video games matched your search.");
+            }
+            for (int i = 7 * page; i < 7 * page + 7; i++) {
+                if (i >= videoGames.size()) {
+                    break;
+                }
+                VideoGame videoGame = videoGames.get(i);
+                System.out.println("[" + (i % 7) + "] - " + String.format("%-" + maxVideoGameTitleLength + "s", videoGame.getTitle()) + 
+                                   "ESRB Rating: " + videoGame.getEsrbRating());
+            }
+            System.out.println("...");
+            if (page > 0) {
+                System.out.println("[7] - Previous page");
+            }
+            if (page < numPages - 1) {
+                System.out.println("[8] - Next page");
+            }
+            System.out.println("[9] - Return to main menu");
+            int choice = Integer.parseInt(scan.nextLine().trim());
+            switch (choice) {
+                case 0:
+                case 1:
+                case 2:
+                case 3:
+                case 4:
+                case 5:
+                case 6:
+                    rateVideoGame(conn, videoGames.get(choice + page * 7));
+                    break;
+                case 7:
+                    if (page > 0) {
+                        page--;
+                    }
+                    break;
+                case 8:
+                    if (page < numPages - 1) {
+                        page++;
+                    }
+                    break;
+                case 9:
+                    System.out.println("Returning to main menu...");
+                    displayMainMenu(conn);
+                    return;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
         }
+    }
+
+    private static void rateVideoGame(Connection conn, VideoGame videoGame) {
+        System.out.println("\nEnter your rating for '" + videoGame.getTitle() + "': ");
+        String ratingStr = scan.nextLine().trim();
+        int rating = ratingStr.isEmpty() ? -1 : Integer.parseInt(ratingStr);
+        if (rating < 1 || rating > 5) {
+            System.out.println("Please enter a valid rating between 1 and 5.");
+            return;
+        }
+        currentUser.rateVideoGame(conn, videoGame, rating);
+        System.out.println("Succesfully added rating.");
     }
 }
