@@ -93,8 +93,9 @@ public class PTUI {
             System.out.println("Main Menu: ");
             System.out.println("0 - Create a collection");
             System.out.println("1 - View collections");
-            System.out.println("3 - Add a game to a collection");
             System.out.println("2 - Search video games");
+            System.out.println("3 - Add a game to a collection");
+            System.out.println("4 - Delete a game from a collection");
             System.out.println("9 - Logout");
             int choice = Integer.parseInt(scan.nextLine().trim());
             switch (choice) {
@@ -109,6 +110,10 @@ public class PTUI {
                     break;
                 case 3:
                     addGameToCollection(conn);
+                    break;
+                case 4:
+                    deleteGameFromCollection(conn);
+                    break;
                 case 9:
                     System.out.println("Logging out...");
                     currentUser = null;
@@ -219,8 +224,6 @@ public class PTUI {
                 System.out.println("Collection not found.");
                 return;
             }
-
-            int cnr = collection.getCnr(); // get collection number
             
             System.out.print("Enter game name: ");
             String gameName = scan.nextLine().trim();
@@ -246,11 +249,48 @@ public class PTUI {
             if (!collection.checkPlatformOwnership(conn, pfnr)) {
                 System.out.println("Warning: You do not own the platform for this game.");
             }
-            collection.addVideoGame(conn, cnr, vgnr);
+            collection.addVideoGame(conn, vgnr);
             System.out.println("Game added to collection successfully.");
         }
         catch (SQLException e) {
             System.err.println("Error adding game to collection: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Deletes a video game from a collection
+     * @param conn the Connection object representing the database connection
+     * @throws SQLException if an error occurs while deleting the game from the collection
+     */
+    private static void deleteGameFromCollection(Connection conn) {
+        try {
+            System.out.print("Enter collection name: ");
+            String collectionName = scan.nextLine().trim();
+            List<Collection> collections = Collection.getCollectionsByUser(conn, currentUser.getUsername());
+            Collection collection = collections.stream()
+                .filter(c -> c.getName().equalsIgnoreCase(collectionName))
+                .findFirst()
+                .orElse(null);
+            // checks if collection exists
+            if (collection == null){
+                System.out.println("Collection not found.");
+                return;
+            }
+
+            System.out.print("Enter game name: ");
+            String gameName = scan.nextLine().trim();
+            VideoGame videoGame = VideoGame.getVideoGameByName(conn, gameName);
+            if (videoGame == null) {
+                System.out.println("Game not found.");
+                return;
+            }
+            int vgnr = videoGame.getVgnr(); // get video game number
+
+            // delete the game from the collection
+            collection.deleteVideoGame(conn, vgnr);
+            System.out.println("Game deleted from collection successfully.");
+        } catch (SQLException e) {
+            System.err.println("Error deleting game from collection: " + e.getMessage());
         }
     }
 

@@ -125,8 +125,23 @@ public class Collection {
      * @param vgnr the video game to be added
      * @throws SQLException if an error occurs while adding the video game to the collection
      */
-    public void addVideoGame(Connection conn, int cnr, int vgnr) throws SQLException {
+    public void addVideoGame(Connection conn, int vgnr) throws SQLException {
         String sql = "insert into contained_in (cnr, vgnr) values (?, ?)";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, cnr);
+            pstmt.setInt(2, vgnr);
+            pstmt.executeUpdate();
+        }
+    }
+
+    /**
+     * Delete a video game in the collection in the database
+     * @param conn the Connection object representing the database connection
+     * @param vgnr the video game to be deleted
+     * @throws SQLException if an error occurs while deleting the video game from the collection
+     */
+    public void deleteVideoGame(Connection conn, int vgnr) throws SQLException {
+        String sql = "delete from contained_in where cnr = ? and vgnr = ?"; // delete the video game from the collection
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, cnr);
             pstmt.setInt(2, vgnr);
