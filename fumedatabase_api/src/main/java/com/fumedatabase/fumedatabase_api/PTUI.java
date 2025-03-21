@@ -94,7 +94,7 @@ public class PTUI {
             System.out.println("0 - Create a collection");
             System.out.println("1 - View collections");
             System.out.println("3 - Add a game to a collection");
-            System.out.println("8 - Search video games");
+            System.out.println("2 - Search video games");
             System.out.println("9 - Logout");
             int choice = Integer.parseInt(scan.nextLine().trim());
             switch (choice) {
@@ -104,11 +104,11 @@ public class PTUI {
                 case 1:
                     viewCollections(conn);
                     break;
-                case 3:
-                    addGameToCollection(conn);
-                case 8:
+                case 2:
                     searchAllVideoGames(conn);
                     break;
+                case 3:
+                    addGameToCollection(conn);
                 case 9:
                     System.out.println("Logging out...");
                     currentUser = null;
