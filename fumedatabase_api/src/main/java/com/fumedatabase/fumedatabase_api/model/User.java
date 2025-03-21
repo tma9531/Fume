@@ -5,6 +5,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.ArrayList;
 
 public class User {
     private String username;
@@ -22,6 +24,11 @@ public class User {
         this.password = password;
         this.creationDate = LocalDate.now();
         this.lastAccessDate = LocalDate.now();
+    }
+
+    public User (String username){
+        this.username = username;
+        this.password = "";
     }
 
     /**
@@ -110,11 +117,11 @@ public class User {
         }
     }
 
-    public void follow(Connection conn, String follow) throws SQLException{
-        String sql = "insert into follows (username, follow) values (?, ?)";
+    public void follow(Connection conn, String em) throws SQLException{
+        String sql = "insert into follows (userfollowing, userbeingfollowed) values (?, (select username from email where email = ?))";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, this.username);
-            pstmt.setString(2, follow);
+            pstmt.setString(2, em);
             pstmt.executeUpdate();
 
         }catch (SQLException e){
@@ -123,7 +130,7 @@ public class User {
     }
 
     public void unfollow(Connection conn, String unfollow){
-        String sql = "delete from follows where username = ? and follow = ?";
+        String sql = "delete from follows where userfollowing = ? and userbeingfollowed = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, this.username);
             pstmt.setString(2, unfollow);
@@ -131,5 +138,39 @@ public class User {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    public ArrayList<User> getFollowers(Connection conn){
+        String sql = "select userfollowing from follows where userbeingfollowed = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, this.username);
+            ResultSet rs = pstmt.executeQuery();
+            ArrayList<User> followers = new ArrayList<User>();
+            while (rs.next()) {
+                User follower = new User(rs.getString("userfollowing"));
+                followers.add(follower);
+            }
+            return followers;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+                return null;
+    }
+
+    public ArrayList<User> getFollowing(Connection conn){
+        String sql = "select userbeingfollowed from follows where userfollowing = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, this.username);
+            ResultSet rs = pstmt.executeQuery();
+            ArrayList<User> following = new ArrayList<User>();
+            while (rs.next()) {
+                User follow = new User(rs.getString("userbeingfollowed"));
+                following.add(follow);
+            }
+            return following;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+                return null;
     }
 }

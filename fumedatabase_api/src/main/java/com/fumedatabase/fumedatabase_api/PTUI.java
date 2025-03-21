@@ -65,7 +65,7 @@ public class PTUI {
      * Displays a main menu for users to do specific task
      * @param conn the Connection object representing the database connection
      */
-    private static void displayLoginMenu(Connection conn){
+    private static void displayLoginMenu(Connection conn)throws SQLException{
         while (currentUser == null) {
             System.out.println("\nLogin Menu");
             System.out.println("[0] - Create an account");
@@ -89,7 +89,7 @@ public class PTUI {
         displayMainMenu(conn);
     }
 
-    private static void displayMainMenu(Connection conn) {
+    private static void displayMainMenu(Connection conn) throws SQLException{
         while (true) {
             System.out.println("\nWelcome, " + (currentUser != null ? currentUser.getUsername() : "___") + "!");
             System.out.println("Press the number corresponding to your choice: ");
@@ -112,8 +112,10 @@ public class PTUI {
                 case 2:
                     break;
                 case 3:
+                    displayFollowers(conn);
                     break;
                 case 4:
+                    displayFollowing(conn);
                     break;
                 case 5:
                     searchAllVideoGames(conn);
@@ -129,9 +131,106 @@ public class PTUI {
         }
     }
 
+    //show following
+    public static void displayFollowing(Connection conn) throws SQLException{
+        List <User> following = currentUser.getFollowing(conn);
+        System.out.println("Following for user " + currentUser.getUsername() + ":");
+        int count = 0;
+        int page = 0;
+        int numPages = 0;
+
+
+
+        System.out.println("Select the follower you wish to unfollow.");
+        numPages = (following.size() / 6) + (following.size() % 6 == 0 ? 0 : 1);
+        System.out.println("Page (" + (page + 1) + "/" + numPages + ")");
+        if (following.isEmpty()) {
+            System.out.println("You have no one you're following.");
+        }
+        for (int i = 6 * page; i < 6 * page + 6; i++) {
+            if (i >= following.size()) {
+                break;
+            }
+            User f = following.get(i);
+            System.out.println("[" + i + "] - " + f.getUsername());
+        }
+        System.out.println("...");
+        if (page > 0) {
+            System.out.println("[6] - Previous page");
+        }
+        if (page < numPages - 1) {
+            System.out.println("[7] - Next page");
+        }
+        System.out.println("[8] - Follow user");
+        System.out.println("[9] - Return to main menu");
+        int choice = Integer.parseInt(scan.nextLine().trim());
+        switch (choice) {
+            case 0:
+                currentUser.unfollow(conn, following.get(0).getUsername());
+                break;
+            case 1:
+                currentUser.unfollow(conn, following.get(1).getUsername());
+                break;
+            case 2:
+                currentUser.unfollow(conn, following.get(2).getUsername());
+                break;
+            case 3:
+                currentUser.unfollow(conn, following.get(3).getUsername());
+                break;
+            case 4:
+                currentUser.unfollow(conn, following.get(4).getUsername());
+                break;
+            case 5:
+                currentUser.unfollow(conn, following.get(5).getUsername());
+                break;
+            case 6:
+                if (page > 0) {
+                    page--;
+                }
+                break;
+            case 7:
+                if (page < numPages - 1) {
+                    page++;
+                }
+                break;
+            case 8:
+                System.out.print("Enter the email of the user you wish to follow: ");
+                String email = scan.nextLine().trim();
+            
+                currentUser.follow(conn, email);
+                break;
+            case 9:
+                System.out.println("Returning to main menu...");
+                displayLoginMenu(conn);
+                return;
+            default:
+                System.out.println("Invalid choice. Please try again.");
+        }
+
+
+        for (User follow : following) {
+            System.out.println(count + " - " + follow.getUsername());
+            count++;
+        }
+
+    }
+
+    //Show Followers
+    public static void displayFollowers(Connection conn){
+ 
+            List <User> followers = currentUser.getFollowers(conn);
+            System.out.println("Followers for user " + currentUser.getUsername() + ":");
+            int count = 0;
+            for (User follower : followers) {
+                System.out.println("["+count +"]"+ " - " + follower.getUsername());
+                count++;
+            }
+    
+    }
+
     // COLLECTION MENU
 
-    private static void displayCollectionMenu(Connection conn) {
+    private static void displayCollectionMenu(Connection conn) throws SQLException{
         int page = 0;
         int numPages = 0;
         while (true) {
