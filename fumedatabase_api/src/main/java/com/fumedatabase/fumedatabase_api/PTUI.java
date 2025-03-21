@@ -180,7 +180,7 @@ public class PTUI {
             for (Collection collection : collections) {
                 System.out.println("CN: " + collection.getCnr() + ", Name: " + collection.getName() +
                         ", Number of Games: " + collection.getNumGames() +
-                        ", Total Play Time: " + collection.getTotalPlayTime() + " hours");
+                        ", Total Play Time: " + collection.getTotalPlayTime() / 60 + " hours and " + collection.getTotalPlayTime() % 60 + " minutes.");
             }
         }
         catch (SQLException e){
