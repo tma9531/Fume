@@ -141,7 +141,6 @@ public class User {
         }
     }
 
-<<<<<<< HEAD
     public ArrayList<User> getFollowers(Connection conn){
         String sql = "select userfollowing from follows where userbeingfollowed = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -175,8 +174,7 @@ public class User {
         }
                 return null;
     }
-}
-=======
+
     public void rateVideoGame(Connection conn, VideoGame game, int rating) {
         String sql = "INSERT INTO rates VALUES (?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -202,4 +200,3 @@ public class User {
         }
     }
 }
->>>>>>> main

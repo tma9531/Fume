@@ -431,6 +431,7 @@ public class PTUI {
 
         int page = 0;
         int numPages = 0;
+        searchLoop:
         while (true) {
             List<VideoGame> videoGames = new ArrayList<>();
             try {
@@ -491,8 +492,7 @@ public class PTUI {
                     break;
                 case 9:
                     System.out.println("Returning to main menu...");
-                    displayMainMenu(conn);
-                    return;
+                    break searchLoop;
                 default:
                     System.out.println("Invalid choice. Please try again.");
             }
