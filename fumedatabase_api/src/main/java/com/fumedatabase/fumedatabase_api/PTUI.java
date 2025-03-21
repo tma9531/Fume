@@ -6,6 +6,8 @@ import java.sql.SQLException;
 import java.util.Scanner;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.util.List;
+
 
 import com.jcraft.jsch.JSchException;
 
@@ -94,6 +96,7 @@ public class PTUI {
                     createCollection(conn);
                     break;
                 case 1:
+                    viewCollections(conn);
                     break;
                 case 9:
                     System.out.println("Logging out...");
@@ -160,6 +163,26 @@ public class PTUI {
         }
         catch (SQLException e){
             System.err.println("Error creating collection: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Displays the list of collections for the current user.
+     * @param conn the Connection object representing the database connection
+     * @throws SQLException if an error occurs while retrieving collections from the database
+     */
+    private static void viewCollections(Connection conn){
+        try{
+            List <Collection> collections = Collection.getCollectionByUser(conn, currentUser.getUsername());
+            System.out.println("Collections for user " + currentUser.getUsername() + ":");
+            for (Collection collection : collections) {
+                System.out.println("CN: " + collection.getCnr() + ", Name: " + collection.getName() +
+                        ", Number of Games: " + collection.getNumGames() +
+                        ", Total Play Time: " + collection.getTotalPlayTime() + " hours");
+            }
+        }
+        catch (SQLException e){
+            System.err.println("Error retrieving collections: " + e.getMessage());
         }
     }
 }
