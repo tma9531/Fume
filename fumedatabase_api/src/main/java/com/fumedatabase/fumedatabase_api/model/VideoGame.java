@@ -44,41 +44,42 @@ public class VideoGame {
      * @throws SQLException
      */
     public static List<VideoGame> searchVideoGames(Connection conn, String title, String platform, String lowerReleaseDate, String upperReleaseDate, String developerName, float lowerPrice, float upperPrice, String genre) throws SQLException{
-        String sql = "SELECT vg.title FROM video_game vg " + 
-                        "JOIN available_on ao ON vg.vgnr = ao.vgnr JOIN platform p ON ao.pfnr = p.pfnr" +
-                        "JOIN developed_by db ON vg.vgnr = db.vgnr JOIN developer d ON db.dnr = d.dnr" +
-                        "WHERE 1 = 1";
+        String sql = "SELECT DISTINCT vg.title, vg.esrbrating FROM video_game vg " + 
+                        "LEFT JOIN available_on ao ON vg.vgnr = ao.vgnr LEFT JOIN platform p ON ao.pfnr = p.pfnr " +
+                        "LEFT JOIN developed_by db ON vg.vgnr = db.vgnr LEFT JOIN developer d ON db.dnr = d.dnr " +
+                        "LEFT JOIN is_genre ig ON vg.vgnr = ig.vgnr LEFT JOIN genre g ON ig.gnr = g.gnr " +
+                        "WHERE 1 = 1 ";
         List<Object> params = new ArrayList<>();
         if (title != null && !title.isEmpty()) {
-            sql += " AND vg.title LIKE ?";
+            sql += "AND vg.title LIKE ? ";
             params.add("%" + title + "%");
         }
         if (platform != null && !platform.isEmpty()) {
-            sql += " AND p.name LIKE ?";
+            sql += "AND p.name LIKE ? ";
             params.add("%" + platform + "%");
         }
         if (lowerReleaseDate != null && !lowerReleaseDate.isEmpty()) {
-            sql += " AND vg.release_date >= ?";
+            sql += "AND ao.game_release_date >= ? ";
             params.add(lowerReleaseDate);
         }
         if (upperReleaseDate != null && !upperReleaseDate.isEmpty()) {
-            sql += " AND vg.release_date <= ?";
+            sql += "AND ao.game_release_date <= ? ";
             params.add(upperReleaseDate);
         }
         if (developerName != null && !developerName.isEmpty()) {
-            sql += " AND d.name LIKE ?";
+            sql += "AND d.name LIKE ? ";
             params.add("%" + developerName + "%");
         }
         if (lowerPrice >= 0) {
-            sql += " AND vg.price >= ?";
+            sql += "AND ao.game_price >= ? ";
             params.add(lowerPrice);
         }
         if (upperPrice >= 0) {
-            sql += " AND vg.price <= ?";
+            sql += "AND ao.game_price <= ? ";
             params.add(upperPrice);
         }
         if (genre != null && !genre.isEmpty()) {
-            sql += " AND vg.genre LIKE ?";
+            sql += "AND g.type LIKE ? ";
             params.add("%" + genre + "%");
         }
 
@@ -93,7 +94,7 @@ public class VideoGame {
         ResultSet rs = pstmt.executeQuery();
         List<VideoGame> videoGames = new ArrayList<>();
         while (rs.next()) {
-            VideoGame game = new VideoGame(rs.getString("title"), rs.getString("esrbRating"));
+            VideoGame game = new VideoGame(rs.getString("title"), rs.getString("esrbrating"));
             videoGames.add(game);
         }
         return videoGames;

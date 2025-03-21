@@ -225,7 +225,7 @@ public class PTUI {
             List<VideoGame> videoGames = VideoGame.searchVideoGames(conn, title, platform, lowerReleaseDate, upperReleaseDate, developerName, lowerPrice, upperPrice, genre);
             System.out.println("All video games with your search constraints:");
             for (VideoGame game : videoGames) {
-                System.out.println("Title: " + game.getTitle() + ", ESRB Rating: " + game.getEsrbRating());
+                System.out.println("\tTitle: " + game.getTitle() + "\t\t\tESRB Rating: " + game.getEsrbRating());
             }
         } catch (SQLException e) {
             System.err.println("Error searching for video games: " + e.getMessage());
