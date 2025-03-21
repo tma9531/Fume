@@ -109,4 +109,27 @@ public class User {
             pstmt.executeUpdate();
         }
     }
+
+    public void follow(Connection conn, String follow) throws SQLException{
+        String sql = "insert into follows (username, follow) values (?, ?)";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, this.username);
+            pstmt.setString(2, follow);
+            pstmt.executeUpdate();
+
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+    }
+
+    public void unfollow(Connection conn, String unfollow){
+        String sql = "delete from follows where username = ? and follow = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, this.username);
+            pstmt.setString(2, unfollow);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }
