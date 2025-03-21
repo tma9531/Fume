@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.ArrayList;
@@ -140,6 +141,7 @@ public class User {
         }
     }
 
+<<<<<<< HEAD
     public ArrayList<User> getFollowers(Connection conn){
         String sql = "select userfollowing from follows where userbeingfollowed = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -174,3 +176,30 @@ public class User {
                 return null;
     }
 }
+=======
+    public void rateVideoGame(Connection conn, VideoGame game, int rating) {
+        String sql = "INSERT INTO rates VALUES (?, ?, ?)";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, username);
+            pstmt.setInt(2, game.getVgnr());
+            pstmt.setInt(3, rating);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void playVideoGame(Connection conn, Timestamp start, Timestamp end, VideoGame game) {
+        String sql = "INSERT INTO plays VALUES (?, ?, ?, ?)";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setTimestamp(1, start);
+            pstmt.setTimestamp(2, end);
+            pstmt.setString(3, username);
+            pstmt.setInt(4, game.getVgnr());
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}
+>>>>>>> main

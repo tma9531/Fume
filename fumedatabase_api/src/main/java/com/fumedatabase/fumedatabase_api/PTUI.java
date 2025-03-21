@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -86,7 +87,9 @@ public class PTUI {
                     System.out.println("Invalid choice. Please try again.");
             }
         }
-        displayMainMenu(conn);
+        if (currentUser != null) {
+            displayMainMenu(conn);
+        }
     }
 
     private static void displayMainMenu(Connection conn) throws SQLException{
@@ -230,7 +233,16 @@ public class PTUI {
 
     // COLLECTION MENU
 
-    private static void displayCollectionMenu(Connection conn) throws SQLException{
+    private static void displayCollectionMenu(Connection conn) {
+        Collection collection = pickCollection(conn);
+        if (collection == null) {
+            System.out.println("Returning to main menu...");
+            return;
+        }
+        System.out.println("You selected collection " + collection.getName());
+    }
+
+    private static Collection pickCollection(Connection conn) {
         int page = 0;
         int numPages = 0;
         while (true) {
@@ -264,7 +276,7 @@ public class PTUI {
                     break;
                 }
                 Collection collection = collections.get(i);
-                System.out.println("[" + i + "] - " + String.format("%-" + maxCollectionNameLength + "s", collection.getName()) + 
+                System.out.println("[" + (i % 6) + "] - " + String.format("%-" + maxCollectionNameLength + "s", collection.getName()) + 
                                    String.format("%-" + maxCollectionNumGamesLength + "s", collection.getNumGames() + " games") +
                                    (collection.getTotalPlayTime() / 60) + ":" + (collection.getTotalPlayTime() % 60) + " play time");
             }
@@ -276,7 +288,7 @@ public class PTUI {
                 System.out.println("[7] - Next page");
             }
             System.out.println("[8] - Create new collection");
-            System.out.println("[9] - Return to main menu");
+            System.out.println("[9] - Cancel");
             int choice = Integer.parseInt(scan.nextLine().trim());
             switch (choice) {
                 case 0:
@@ -285,8 +297,7 @@ public class PTUI {
                 case 3:
                 case 4:
                 case 5:
-                    System.out.println("You selected collection " + choice + ": " + collections.get(choice).getName());
-                    break;
+                    return collections.get(choice + page * 6);
                 case 6:
                     if (page > 0) {
                         page--;
@@ -301,14 +312,15 @@ public class PTUI {
                     createCollection(conn);
                     break;
                 case 9:
-                    System.out.println("Returning to main menu...");
-                    displayLoginMenu(conn);
-                    return;
+                    System.out.println("Cancelling...");
+                    return null;
                 default:
                     System.out.println("Invalid choice. Please try again.");
             }
         }
     }
+
+    
 
     // USER METHODS FOR LOGIN SCREEN
 
@@ -369,116 +381,6 @@ public class PTUI {
         }
     }
 
-    /**
-     * Displays the list of collections for the current user.
-     * @param conn the Connection object representing the database connection
-     * @throws SQLException if an error occurs while retrieving collections from the database
-     */
-    private static void viewCollections(Connection conn){
-        try{
-            List <Collection> collections = Collection.getCollectionsByUser(conn, currentUser.getUsername());
-            System.out.println("Collections for user " + currentUser.getUsername() + ":");
-            for (Collection collection : collections) {
-                System.out.println("Name: " + collection.getName() +
-                        ", Number of Games: " + collection.getNumGames() +
-                        ", Total Play Time: " + collection.getTotalPlayTime() / 60 + ":" + collection.getTotalPlayTime() % 60);
-            }
-        }
-        catch (SQLException e){
-            System.err.println("Error retrieving collections: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Adds a video game to a collection
-     * @param conn the Connection object representing the database connection
-     * @throws SQLException if an error occurs while adding the game to the collection
-     */
-    private static void addGameToCollection(Connection conn) {
-        try {
-        // get collection name, game name, and platform name from user input
-            System.out.print("Enter collection name: ");
-            String collectionName = scan.nextLine().trim();
-            // checks if collection exists
-            List<Collection> collections = Collection.getCollectionsByUser(conn, currentUser.getUsername());
-            Collection collection = collections.stream()
-                .filter(c -> c.getName().equalsIgnoreCase(collectionName))
-                .findFirst()
-                .orElse(null);
-            if (collection == null){
-                System.out.println("Collection not found.");
-                return;
-            }
-            
-            System.out.print("Enter game name: ");
-            String gameName = scan.nextLine().trim();
-            VideoGame videoGame = VideoGame.getVideoGameByName(conn, gameName);
-            // checks if game exists
-            if (videoGame == null) {
-                System.out.println("Game not found.");
-                return;
-            }
-            int vgnr = videoGame.getVgnr(); // get video game number
-
-            System.out.print("Enter platform name: ");
-            String platformName = scan.nextLine().trim();         
-            int pfnr = getPfnrByPlatformName(conn, platformName);
-
-            // checks if platform exists
-            if (pfnr == -1) {
-                System.out.println("Platform not found.");
-                return;
-            }
-
-            // add the game to the collection
-            if (!collection.checkPlatformOwnership(conn, pfnr)) {
-                System.out.println("Warning: You do not own the platform for this game.");
-            }
-            collection.addVideoGame(conn, vgnr);
-            System.out.println("Game added to collection successfully.");
-        }
-        catch (SQLException e) {
-            System.err.println("Error adding game to collection: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Deletes a video game from a collection
-     * @param conn the Connection object representing the database connection
-     * @throws SQLException if an error occurs while deleting the game from the collection
-     */
-    private static void deleteGameFromCollection(Connection conn) {
-        try {
-            System.out.print("Enter collection name: ");
-            String collectionName = scan.nextLine().trim();
-            List<Collection> collections = Collection.getCollectionsByUser(conn, currentUser.getUsername());
-            Collection collection = collections.stream()
-                .filter(c -> c.getName().equalsIgnoreCase(collectionName))
-                .findFirst()
-                .orElse(null);
-            // checks if collection exists
-            if (collection == null){
-                System.out.println("Collection not found.");
-                return;
-            }
-
-            System.out.print("Enter game name: ");
-            String gameName = scan.nextLine().trim();
-            VideoGame videoGame = VideoGame.getVideoGameByName(conn, gameName);
-            if (videoGame == null) {
-                System.out.println("Game not found.");
-                return;
-            }
-            int vgnr = videoGame.getVgnr(); // get video game number
-
-            // delete the game from the collection
-            collection.deleteVideoGame(conn, vgnr);
-            System.out.println("Game deleted from collection successfully.");
-        } catch (SQLException e) {
-            System.err.println("Error deleting game from collection: " + e.getMessage());
-        }
-    }
-
     // HELPER METHODS FOR GAME AND PLATFORM NUMBER RETRIEVAL 
 
     /**
@@ -499,6 +401,7 @@ public class PTUI {
         }
         return -1; // Platform not found
     }
+
     // VIDEO GAME METHODS FOR MAIN MENU
 
     /**
@@ -507,7 +410,7 @@ public class PTUI {
      * @throws SQLException if an error occurs while searching for video games in the database
      */
     private static void searchAllVideoGames(Connection conn) {
-        System.out.print("Enter a video game title, a part of a title, or press ENTER to skip: ");
+        System.out.print("\nEnter a video game title, a part of a title, or press ENTER to skip: ");
         String title = scan.nextLine().trim();
         System.out.print("Enter a platform or press ENTER to skip: ");
         String platform = scan.nextLine().trim();
@@ -525,14 +428,132 @@ public class PTUI {
         float upperPrice = upperPriceStr.isEmpty() ? -1 : Float.parseFloat(upperPriceStr);
         System.out.print("Enter a genre or press ENTER to skip: ");
         String genre = scan.nextLine().trim();
-        try {
-            List<VideoGame> videoGames = VideoGame.searchVideoGames(conn, title, platform, lowerReleaseDate, upperReleaseDate, developerName, lowerPrice, upperPrice, genre);
-            System.out.println("All video games with your search constraints:");
-            for (VideoGame game : videoGames) {
-                System.out.println("\tTitle: " + game.getTitle() + "\t\t\tESRB Rating: " + game.getEsrbRating());
+
+        int page = 0;
+        int numPages = 0;
+        while (true) {
+            List<VideoGame> videoGames = new ArrayList<>();
+            try {
+                videoGames = VideoGame.searchVideoGames(conn, title, platform, lowerReleaseDate, upperReleaseDate, developerName, lowerPrice, upperPrice, genre);
+                numPages = (videoGames.size() / 7) + (videoGames.size() % 7 == 0 ? 0 : 1);
+            } catch (SQLException e) {
+                System.err.println("Error retrieving video games: " + e.getMessage());
             }
-        } catch (SQLException e) {
-            System.err.println("Error searching for video games: " + e.getMessage());
+            int maxVideoGameTitleLength = 0;
+            for (VideoGame videoGame : videoGames) {
+                if (videoGame.getTitle().length() > maxVideoGameTitleLength) {
+                    maxVideoGameTitleLength = videoGame.getTitle().length();
+                }
+            }
+            maxVideoGameTitleLength += 2; // Add padding
+            System.out.println("\nSelect the game you wish to rate.");
+            System.out.println("Video games that matched your search:");
+            System.out.println("Page (" + (page + 1) + "/" + numPages + ")");
+            if (videoGames.isEmpty()) {
+                System.out.println("No video games matched your search.");
+            }
+            for (int i = 7 * page; i < 7 * page + 7; i++) {
+                if (i >= videoGames.size()) {
+                    break;
+                }
+                VideoGame videoGame = videoGames.get(i);
+                System.out.println("[" + (i % 7) + "] - " + String.format("%-" + maxVideoGameTitleLength + "s", videoGame.getTitle()) + 
+                                   "ESRB Rating: " + videoGame.getEsrbRating());
+            }
+            System.out.println("...");
+            if (page > 0) {
+                System.out.println("[7] - Previous page");
+            }
+            if (page < numPages - 1) {
+                System.out.println("[8] - Next page");
+            }
+            System.out.println("[9] - Return to main menu");
+            int choice = Integer.parseInt(scan.nextLine().trim());
+            switch (choice) {
+                case 0:
+                case 1:
+                case 2:
+                case 3:
+                case 4:
+                case 5:
+                case 6:
+                    rateVideoGame(conn, videoGames.get(choice + page * 7));
+                    break;
+                case 7:
+                    if (page > 0) {
+                        page--;
+                    }
+                    break;
+                case 8:
+                    if (page < numPages - 1) {
+                        page++;
+                    }
+                    break;
+                case 9:
+                    System.out.println("Returning to main menu...");
+                    displayMainMenu(conn);
+                    return;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
         }
+    }
+
+    private static void interactVideoGame(Connection conn, VideoGame videoGame) {
+        System.out.println("\nYou selected '" + videoGame.getTitle() + "'.");
+        System.out.println("Please select one of the following options:");
+        System.out.println("[0] - Rate this video game");
+        System.out.println("[1] - Play this video game");
+        System.out.println("[2] - Add this video game to a collection");
+        System.out.println("[9] - Cancel");
+        int choice = Integer.parseInt(scan.nextLine().trim());
+        switch (choice) {
+            case 0:
+                rateVideoGame(conn, videoGame);
+                break;
+            case 1:
+                playVideoGame(conn, videoGame);
+                break;
+            case 2:
+                Collection collection = pickCollection(conn);
+                if (collection == null) {
+                    break;
+                }
+                addVideoGameToCollection(conn);
+                break;
+            case 9:
+                System.out.println("Cancelling selection...");
+                break;
+            default:
+                System.out.println("Invalid choice. Please try again.");
+        }
+    }
+
+    private static void rateVideoGame(Connection conn, VideoGame videoGame) {
+        System.out.println("\nEnter your rating for '" + videoGame.getTitle() + "': ");
+        String ratingStr = scan.nextLine().trim();
+        int rating = ratingStr.isEmpty() ? -1 : Integer.parseInt(ratingStr);
+        if (rating < 1 || rating > 5) {
+            System.out.println("Please enter a valid rating between 1 and 5.");
+            return;
+        }
+        currentUser.rateVideoGame(conn, videoGame, rating);
+        System.out.println("Succesfully added rating.");
+    }
+
+    private static void playVideoGame(Connection conn, VideoGame videoGame) {
+        long currentTimeMillis = System.currentTimeMillis();
+        Timestamp startTimestamp = new Timestamp(currentTimeMillis);
+        System.out.println("\nStarting playing '" + videoGame.getTitle() + "' at " + startTimestamp.toString() + "!");
+        System.out.println("Press ENTER when you're done playing.");
+        scan.nextLine();
+        currentTimeMillis = System.currentTimeMillis();
+        Timestamp endTimestamp = new Timestamp(currentTimeMillis);
+        currentUser.playVideoGame(conn, endTimestamp, endTimestamp, videoGame);
+        System.out.println("Finished playing '" + videoGame.getTitle() + "' at " + endTimestamp.toString() + ".");
+    }
+
+    private static void addVideoGameToCollection(Connection conn) {
+        return;
     }
 }
