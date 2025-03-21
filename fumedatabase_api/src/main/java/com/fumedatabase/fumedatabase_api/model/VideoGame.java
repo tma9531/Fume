@@ -82,6 +82,8 @@ public class VideoGame {
             sql += "AND g.type LIKE ? ";
             params.add("%" + genre + "%");
         }
+        System.out.println(sql);
+        System.out.println(params);
 
         PreparedStatement pstmt = conn.prepareStatement(sql);
         for (int i = 0; i < params.size(); i++) {

@@ -215,10 +215,10 @@ public class PTUI {
         String developerName = scan.nextLine().trim();
         System.out.print("Enter a lower bound for price or press ENTER to skip: ");
         String lowerPriceStr = scan.nextLine().trim();
-        float lowerPrice = lowerPriceStr.isEmpty() ? 0 : Float.parseFloat(lowerPriceStr);
+        float lowerPrice = lowerPriceStr.isEmpty() ? -1 : Float.parseFloat(lowerPriceStr);
         System.out.print("Enter an upper bound for price or press ENTER to skip: ");
         String upperPriceStr = scan.nextLine().trim();
-        float upperPrice = upperPriceStr.isEmpty() ? Float.MAX_VALUE : Float.parseFloat(upperPriceStr);
+        float upperPrice = upperPriceStr.isEmpty() ? -1 : Float.parseFloat(upperPriceStr);
         System.out.print("Enter a genre or press ENTER to skip: ");
         String genre = scan.nextLine().trim();
         try {
