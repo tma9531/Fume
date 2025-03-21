@@ -84,10 +84,21 @@ public class Collection {
         }
     }
 
+    /**
+     * Retrieves a list of collections for a given user from the database, including the number of games and total play time for each collection.
+     * @param conn the Connection object representing the database connection
+     * @param username the username of the user whose collections are to be retrieved
+     * @return a list of Collection objects representing the user's collections, or an empty list if none are found
+     * @throws SQLException if an error occurs while retrieving collections from the database
+     */
     public static List<Collection> getCollectionByUser(Connection conn, String username) throws SQLException{
-        String sql = "select c.name, count(v.id) as num_games, sum(v.play_time) as total_play_time " +
-                    "from collection c left join video_game v on c.cnr = v.collection_id " +
-                    "where c.username = ? group by c.name order by c.name ASC"; 
+        String sql = "select c.name, count(v.vgnr) as num_games, " +
+                        " coalesce(sum(extract(epoch from (p.end_timestamp - p.start_timestamp)) / 60), 0) as total_play_time " +
+                        "from collection c " +
+                        "left join contained_in ci on c.cnr = ci.cnr " +
+                        "left join video_game v on ci.vgnr = v.vgnr " +
+                        "left join plays p on v.vgnr = p.vgnr and p.username = c.username " +
+                        "where c.username = ? group by c.name order by c.name asc"; 
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, username);
             ResultSet rs = pstmt.executeQuery();
