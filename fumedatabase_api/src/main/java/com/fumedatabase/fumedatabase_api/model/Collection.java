@@ -85,7 +85,7 @@ public class Collection {
             pstmt.executeUpdate();
             ResultSet rs = pstmt.getGeneratedKeys();
             if (rs.next()) {
-                cnr = rs.getInt(1); // Get the generated collection number
+                cnr = rs.getInt("cnr"); // Get the generated collection number
             }
         }
     }
