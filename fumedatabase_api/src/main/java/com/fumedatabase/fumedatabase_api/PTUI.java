@@ -12,8 +12,8 @@ import com.fumedatabase.fumedatabase_api.connection.DatabaseConnectionManager;
 import com.fumedatabase.fumedatabase_api.connection.SSHConnectionManager;
 import com.fumedatabase.fumedatabase_api.model.Collection;
 import com.fumedatabase.fumedatabase_api.model.User;
-import com.jcraft.jsch.JSchException;
 import com.fumedatabase.fumedatabase_api.model.VideoGame;
+import com.jcraft.jsch.JSchException;
 
 public class PTUI {
 
@@ -94,6 +94,7 @@ public class PTUI {
             System.out.println("0 - Create a collection");
             System.out.println("1 - View collections");
             System.out.println("3 - Add a game to a collection");
+            System.out.println("8 - Search video games");
             System.out.println("9 - Logout");
             int choice = Integer.parseInt(scan.nextLine().trim());
             switch (choice) {
@@ -105,6 +106,8 @@ public class PTUI {
                     break;
                 case 3:
                     addGameToCollection(conn);
+                case 8:
+                    searchAllVideoGames(conn);
                     break;
                 case 9:
                     System.out.println("Logging out...");
@@ -270,5 +273,41 @@ public class PTUI {
             }
         }
         return -1; // Platform not found
+    }
+    // VIDEO GAME METHODS FOR MAIN MENU
+
+    /**
+     * Displays list of video games based on user input criteria.
+     * @param conn
+     * @throws SQLException if an error occurs while searching for video games in the database
+     */
+    private static void searchAllVideoGames(Connection conn){
+        System.out.print("Enter a video game title, a part of a title, or press ENTER to skip: ");
+        String title = scan.nextLine().trim();
+        System.out.print("Enter a platform or press ENTER to skip: ");
+        String platform = scan.nextLine().trim();
+        System.out.print("Enter a lower bound for release date (YYYY-MM-DD) or press ENTER to skip: ");
+        String lowerReleaseDate = scan.nextLine().trim();
+        System.out.print("Enter an upper bound for release date (YYYY-MM-DD) or press ENTER to skip: ");
+        String upperReleaseDate = scan.nextLine().trim();
+        System.out.print("Enter a developer name or press ENTER to skip: ");
+        String developerName = scan.nextLine().trim();
+        System.out.print("Enter a lower bound for price or press ENTER to skip: ");
+        String lowerPriceStr = scan.nextLine().trim();
+        float lowerPrice = lowerPriceStr.isEmpty() ? -1 : Float.parseFloat(lowerPriceStr);
+        System.out.print("Enter an upper bound for price or press ENTER to skip: ");
+        String upperPriceStr = scan.nextLine().trim();
+        float upperPrice = upperPriceStr.isEmpty() ? -1 : Float.parseFloat(upperPriceStr);
+        System.out.print("Enter a genre or press ENTER to skip: ");
+        String genre = scan.nextLine().trim();
+        try {
+            List<VideoGame> videoGames = VideoGame.searchVideoGames(conn, title, platform, lowerReleaseDate, upperReleaseDate, developerName, lowerPrice, upperPrice, genre);
+            System.out.println("All video games with your search constraints:");
+            for (VideoGame game : videoGames) {
+                System.out.println("\tTitle: " + game.getTitle() + "\t\t\tESRB Rating: " + game.getEsrbRating());
+            }
+        } catch (SQLException e) {
+            System.err.println("Error searching for video games: " + e.getMessage());
+        }
     }
 }
