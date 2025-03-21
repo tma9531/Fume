@@ -2,11 +2,14 @@ package com.fumedatabase.fumedatabase_api;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Scanner;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 
+import com.fumedatabase.fumedatabase_api.connection.DatabaseConnectionManager;
+import com.fumedatabase.fumedatabase_api.connection.SSHConnectionManager;
+import com.fumedatabase.fumedatabase_api.model.Collection;
+import com.fumedatabase.fumedatabase_api.model.User;
 import com.jcraft.jsch.JSchException;
 
 public class PTUI {

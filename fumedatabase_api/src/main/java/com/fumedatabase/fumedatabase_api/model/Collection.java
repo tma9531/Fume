@@ -1,4 +1,4 @@
-package com.fumedatabase.fumedatabase_api;
+package com.fumedatabase.fumedatabase_api.model;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

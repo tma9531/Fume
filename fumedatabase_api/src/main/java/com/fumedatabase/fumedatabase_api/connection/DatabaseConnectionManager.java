@@ -1,4 +1,4 @@
-package com.fumedatabase.fumedatabase_api;
+package com.fumedatabase.fumedatabase_api.connection;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
