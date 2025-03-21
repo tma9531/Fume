@@ -167,7 +167,7 @@ public class PTUI {
                 Collection collection = collections.get(i);
                 System.out.println("[" + i + "] - " + String.format("%-" + maxCollectionNameLength + "s", collection.getName()) + 
                                    String.format("%-" + maxCollectionNumGamesLength + "s", collection.getNumGames() + " games") +
-                                   String.format("%.2f", collection.getTotalPlayTime() / 60.0) + " hours played");
+                                   (collection.getTotalPlayTime() / 60) + ":" + (collection.getTotalPlayTime() % 60) + " play time");
             }
             System.out.println("...");
             if (page > 0) {

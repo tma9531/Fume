@@ -116,6 +116,7 @@ public class VideoGame {
             sql += "AND g.type LIKE ? ";
             params.add("%" + genre + "%");
         }
+        sql += "GROUP BY vg.title, vg.esrbrating ORDER BY vg.title ASC";
         System.out.println(sql);
         System.out.println(params);
 
