@@ -26,6 +26,12 @@ public class Collection {
         this.username = username;
     }
 
+    public Collection(int cnr, String name, String username) {
+        this.cnr = cnr;
+        this.name = name;
+        this.username = username;
+    }
+
     /**
      * Returns the collection number (cnr) of this collection.
      * @return the collection number of this collection
@@ -91,25 +97,61 @@ public class Collection {
      * @return a list of Collection objects representing the user's collections, or an empty list if none are found
      * @throws SQLException if an error occurs while retrieving collections from the database
      */
-    public static List<Collection> getCollectionByUser(Connection conn, String username) throws SQLException{
-        String sql = "select c.name, count(v.vgnr) as num_games, " +
-                        " coalesce(sum(extract(epoch from (p.end_timestamp - p.start_timestamp)) / 60), 0) as total_play_time " +
+    public static List<Collection> getCollectionsByUser(Connection conn, String username) throws SQLException{
+        String sql = "select c.cnr, c.name, count(v.vgnr) as num_games, " +
+                        "coalesce(sum(extract(epoch from (p.end_timestamp - p.start_timestamp)) / 60), 0) as total_play_time " +
                         "from collection c " +
                         "left join contained_in ci on c.cnr = ci.cnr " +
                         "left join video_game v on ci.vgnr = v.vgnr " +
                         "left join plays p on v.vgnr = p.vgnr and p.username = c.username " +
-                        "where c.username = ? group by c.name order by c.name asc"; 
+                        "where c.username = ? group by c.cnr, c.name order by c.name asc"; 
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, username);
             ResultSet rs = pstmt.executeQuery();
             List<Collection> collections = new ArrayList<>();
             while (rs.next()) {
-                Collection collection = new Collection(rs.getString("name"), username);
+                Collection collection = new Collection(rs.getInt("cnr"), rs.getString("name"), username);
                 collection.setNumGames(rs.getInt("num_games"));
                 collection.setTotalPlayTime(rs.getInt("total_play_time"));
                 collections.add(collection);
             }
             return collections;
         }
+    }
+
+    /**
+     * Add a video to the collection in the database.
+     * @param conn the Connection object representing the database connection
+     * @param vgnr the video game to be added
+     * @throws SQLException if an error occurs while adding the video game to the collection
+     */
+    public void addVideoGame(Connection conn, int cnr, int vgnr) throws SQLException {
+        String sql = "insert into contained_in (cnr, vgnr) values (?, ?)";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, cnr);
+            pstmt.setInt(2, vgnr);
+            pstmt.executeUpdate();
+        }
+    }
+
+    /**
+     * Checks if the user owns the required platform for the added video game to a collection
+     * @param conn the Connection object representing the database connection
+     * @param pfnr the platform number to be checked
+     * @return true if the user owns the required platform, false otherwise
+     * @throws SQLException if an error occurs while checking the platform ownership
+     */
+    public boolean checkPlatformOwnership(Connection conn, int pfnr) throws SQLException {
+        String sql = "select count(*) from owns where pfnr = ? and username = ?"; // counts the amount of roles that match the pfnr and username
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, pfnr);
+            pstmt.setString(2, username);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0; // if the count is greater than 0, the user owns the platform
+                }
+            }
+        }
+        return false;
     }
 }

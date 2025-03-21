@@ -17,6 +17,12 @@ public class VideoGame {
         this.esrbRating = esrbRating;
     }
 
+    public VideoGame(int vgnr, String title, String esrbRating) {
+        this.vgnr = vgnr;
+        this.title = title;
+        this.esrbRating = esrbRating;
+    }
+
     public int getVgnr() {
         return vgnr;
     }
@@ -27,6 +33,19 @@ public class VideoGame {
 
     public String getEsrbRating() {
         return esrbRating;
+    }
+
+    public static VideoGame getVideoGameByName(Connection conn, String gameName) throws SQLException {
+        String sql = "select * from video_game where title = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, gameName);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return new VideoGame(rs.getInt("vgnr"), rs.getString("title"), rs.getString("esrbRating"));
+            } else {
+                return null; // No game found with the given name
+            }
+        }
     }
 
     public static List<VideoGame> searchVideoGames(Connection conn, String title) throws SQLException{

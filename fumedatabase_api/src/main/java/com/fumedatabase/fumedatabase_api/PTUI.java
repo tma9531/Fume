@@ -6,12 +6,14 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Scanner;
 import java.util.List;
+import java.sql.ResultSet;
 
 import com.fumedatabase.fumedatabase_api.connection.DatabaseConnectionManager;
 import com.fumedatabase.fumedatabase_api.connection.SSHConnectionManager;
 import com.fumedatabase.fumedatabase_api.model.Collection;
 import com.fumedatabase.fumedatabase_api.model.User;
 import com.jcraft.jsch.JSchException;
+import com.fumedatabase.fumedatabase_api.model.VideoGame;
 
 public class PTUI {
 
@@ -91,6 +93,7 @@ public class PTUI {
             System.out.println("Main Menu: ");
             System.out.println("0 - Create a collection");
             System.out.println("1 - View collections");
+            System.out.println("3 - Add a game to a collection");
             System.out.println("9 - Logout");
             int choice = Integer.parseInt(scan.nextLine().trim());
             switch (choice) {
@@ -99,6 +102,9 @@ public class PTUI {
                     break;
                 case 1:
                     viewCollections(conn);
+                    break;
+                case 3:
+                    addGameToCollection(conn);
                     break;
                 case 9:
                     System.out.println("Logging out...");
@@ -150,6 +156,8 @@ public class PTUI {
         }
     }
 
+    // COLLECTION METHODS FOR MAIN MENU
+
     /**
      * Create a new collection by prompting for the collection name.
      * @param conn the Connection object representing the database connection
@@ -175,10 +183,10 @@ public class PTUI {
      */
     private static void viewCollections(Connection conn){
         try{
-            List <Collection> collections = Collection.getCollectionByUser(conn, currentUser.getUsername());
+            List <Collection> collections = Collection.getCollectionsByUser(conn, currentUser.getUsername());
             System.out.println("Collections for user " + currentUser.getUsername() + ":");
             for (Collection collection : collections) {
-                System.out.println("CN: " + collection.getCnr() + ", Name: " + collection.getName() +
+                System.out.println("Name: " + collection.getName() +
                         ", Number of Games: " + collection.getNumGames() +
                         ", Total Play Time: " + collection.getTotalPlayTime() / 60 + ":" + collection.getTotalPlayTime() % 60);
             }
@@ -186,5 +194,81 @@ public class PTUI {
         catch (SQLException e){
             System.err.println("Error retrieving collections: " + e.getMessage());
         }
+    }
+
+    /**
+     * Adds a video game to a collection
+     * @param conn the Connection object representing the database connection
+     * @throws SQLException if an error occurs while adding the game to the collection
+     */
+    private static void addGameToCollection(Connection conn) {
+        try {
+        // get collection name, game name, and platform name from user input
+            System.out.print("Enter collection name: ");
+            String collectionName = scan.nextLine().trim();
+            // checks if collection exists
+            List<Collection> collections = Collection.getCollectionsByUser(conn, currentUser.getUsername());
+            Collection collection = collections.stream()
+                .filter(c -> c.getName().equalsIgnoreCase(collectionName))
+                .findFirst()
+                .orElse(null);
+            if (collection == null){
+                System.out.println("Collection not found.");
+                return;
+            }
+
+            int cnr = collection.getCnr(); // get collection number
+            
+            System.out.print("Enter game name: ");
+            String gameName = scan.nextLine().trim();
+            VideoGame videoGame = VideoGame.getVideoGameByName(conn, gameName);
+            // checks if game exists
+            if (videoGame == null) {
+                System.out.println("Game not found.");
+                return;
+            }
+            int vgnr = videoGame.getVgnr(); // get video game number
+
+            System.out.print("Enter platform name: ");
+            String platformName = scan.nextLine().trim();         
+            int pfnr = getPfnrByPlatformName(conn, platformName);
+
+            // checks if platform exists
+            if (pfnr == -1) {
+                System.out.println("Platform not found.");
+                return;
+            }
+
+            // add the game to the collection
+            if (!collection.checkPlatformOwnership(conn, pfnr)) {
+                System.out.println("Warning: You do not own the platform for this game.");
+            }
+            collection.addVideoGame(conn, cnr, vgnr);
+            System.out.println("Game added to collection successfully.");
+        }
+        catch (SQLException e) {
+            System.err.println("Error adding game to collection: " + e.getMessage());
+        }
+    }
+
+    // HELPER METHODS FOR GAME AND PLATFORM NUMBER RETRIEVAL 
+
+    /**
+     * Retrieves the platform number (pfnr) by platform name from the database.
+     * @param conn the Connection object representing the database connection
+     * @param platformName the name of the platform
+     * @return the platform number (pfnr) if found, otherwise -1
+     */
+    private static int getPfnrByPlatformName(Connection conn, String platformName) throws SQLException {
+        String sql = "select pfnr from platform where name = ?";
+        try (var pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, platformName);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("pfnr");
+                }
+            }
+        }
+        return -1; // Platform not found
     }
 }
