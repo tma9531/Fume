@@ -3,10 +3,11 @@ package com.fumedatabase.fumedatabase_api;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Scanner;
-import java.util.List;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 
 import com.fumedatabase.fumedatabase_api.connection.DatabaseConnectionManager;
 import com.fumedatabase.fumedatabase_api.connection.SSHConnectionManager;
@@ -66,10 +67,10 @@ public class PTUI {
      */
     private static void displayLoginMenu(Connection conn){
         while (currentUser == null) {
-            System.out.println("Login Menu: ");
-            System.out.println("0 - Create an account");
-            System.out.println("1 - Login");
-            System.out.println("9 - Exit");
+            System.out.println("\nLogin Menu");
+            System.out.println("[0] - Create an account");
+            System.out.println("[1] - Login");
+            System.out.println("[9] - Exit");
             int choice = Integer.parseInt(scan.nextLine().trim());
             switch (choice) {
                 case 0:
@@ -88,35 +89,120 @@ public class PTUI {
         displayMainMenu(conn);
     }
 
-    private static void displayMainMenu(Connection conn){
+    private static void displayMainMenu(Connection conn) {
         while (true) {
+            System.out.println("\nWelcome, " + (currentUser != null ? currentUser.getUsername() : "___") + "!");
+            System.out.println("Press the number corresponding to your choice: ");
             System.out.println("Main Menu: ");
-            System.out.println("0 - Create a collection");
-            System.out.println("1 - View collections");
-            System.out.println("2 - Search video games");
-            System.out.println("3 - Add a game to a collection");
-            System.out.println("4 - Delete a game from a collection");
-            System.out.println("9 - Logout");
+            System.out.println("[0] - My collections");
+            System.out.println("[1] - My ratings");
+            System.out.println("[2] - My platforms");
+            System.out.println("[3] - My followers");
+            System.out.println("[4] - Following");
+            System.out.println("[5] - Search video games");
+            System.out.println("...");
+            System.out.println("[9] - Logout");
             int choice = Integer.parseInt(scan.nextLine().trim());
             switch (choice) {
                 case 0:
-                    createCollection(conn);
+                    displayCollectionMenu(conn);
                     break;
                 case 1:
-                    viewCollections(conn);
                     break;
                 case 2:
-                    searchAllVideoGames(conn);
                     break;
                 case 3:
-                    addGameToCollection(conn);
                     break;
                 case 4:
-                    deleteGameFromCollection(conn);
+                    break;
+                case 5:
+                    searchAllVideoGames(conn);
                     break;
                 case 9:
                     System.out.println("Logging out...");
                     currentUser = null;
+                    displayLoginMenu(conn);
+                    return;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        }
+    }
+
+    // COLLECTION MENU
+
+    private static void displayCollectionMenu(Connection conn) {
+        int page = 0;
+        int numPages = 0;
+        while (true) {
+            List<Collection> collections = new ArrayList<>();
+            try {
+                collections = Collection.getCollectionsByUser(conn, currentUser.getUsername());
+                numPages = (collections.size() / 6) + (collections.size() % 6 == 0 ? 0 : 1);
+            } catch (SQLException e) {
+                System.err.println("Error retrieving collections: " + e.getMessage());
+            }
+            int maxCollectionNameLength = 0;
+            int maxCollectionNumGamesLength = 0;
+            for (Collection collection : collections) {
+                if (collection.getName().length() > maxCollectionNameLength) {
+                    maxCollectionNameLength = collection.getName().length();
+                }
+                if (String.valueOf(collection.getNumGames()).length() > maxCollectionNumGamesLength) {
+                    maxCollectionNumGamesLength = String.valueOf(collection.getNumGames()).length();
+                }
+            }
+            maxCollectionNameLength += 2; // Add padding
+            maxCollectionNumGamesLength += 2 + 6; // Add padding
+            System.out.println("\nMy collections:");
+            System.out.println("Select the collection you wish to view/edit.");
+            System.out.println("Page (" + (page + 1) + "/" + numPages + ")");
+            if (collections.isEmpty()) {
+                System.out.println("You have no collections.");
+            }
+            for (int i = 6 * page; i < 6 * page + 6; i++) {
+                if (i >= collections.size()) {
+                    break;
+                }
+                Collection collection = collections.get(i);
+                System.out.println("[" + i + "] - " + String.format("%-" + maxCollectionNameLength + "s", collection.getName()) + 
+                                   String.format("%-" + maxCollectionNumGamesLength + "s", collection.getNumGames() + " games") +
+                                   String.format("%.2f", collection.getTotalPlayTime() / 60.0) + " hours played");
+            }
+            System.out.println("...");
+            if (page > 0) {
+                System.out.println("[6] - Previous page");
+            }
+            if (page < numPages - 1) {
+                System.out.println("[7] - Next page");
+            }
+            System.out.println("[8] - Create new collection");
+            System.out.println("[9] - Return to main menu");
+            int choice = Integer.parseInt(scan.nextLine().trim());
+            switch (choice) {
+                case 0:
+                case 1:
+                case 2:
+                case 3:
+                case 4:
+                case 5:
+                    System.out.println("You selected collection " + choice + ": " + collections.get(choice).getName());
+                    break;
+                case 6:
+                    if (page > 0) {
+                        page--;
+                    }
+                    break;
+                case 7:
+                    if (page < numPages - 1) {
+                        page++;
+                    }
+                    break;
+                case 8:
+                    createCollection(conn);
+                    break;
+                case 9:
+                    System.out.println("Returning to main menu...");
                     displayLoginMenu(conn);
                     return;
                 default:
@@ -321,7 +407,7 @@ public class PTUI {
      * @param conn
      * @throws SQLException if an error occurs while searching for video games in the database
      */
-    private static void searchAllVideoGames(Connection conn){
+    private static void searchAllVideoGames(Connection conn) {
         System.out.print("Enter a video game title, a part of a title, or press ENTER to skip: ");
         String title = scan.nextLine().trim();
         System.out.print("Enter a platform or press ENTER to skip: ");
