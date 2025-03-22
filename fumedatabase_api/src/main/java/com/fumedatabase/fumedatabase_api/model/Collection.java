@@ -119,18 +119,48 @@ public class Collection {
         }
     }
 
+    public void rename(Connection conn, String newName) {
+        String sql = "UPDATE collection SET name = ? WHERE cnr = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, newName);
+            pstmt.setInt(2, cnr);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void delete(Connection conn) {
+        String clearRowsSql = "DELETE FROM contained_in WHERE cnr = ?";
+        String sql = "DELETE FROM collection WHERE cnr = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(clearRowsSql)) {
+            pstmt.setInt(1, cnr);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, cnr);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     /**
      * Add a video to the collection in the database.
      * @param conn the Connection object representing the database connection
      * @param vgnr the video game to be added
      * @throws SQLException if an error occurs while adding the video game to the collection
      */
-    public void addVideoGame(Connection conn, int vgnr) throws SQLException {
+    public void addVideoGame(Connection conn, int vgnr) {
         String sql = "insert into contained_in (cnr, vgnr) values (?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, cnr);
             pstmt.setInt(2, vgnr);
             pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
@@ -140,34 +170,37 @@ public class Collection {
      * @param vgnr the video game to be deleted
      * @throws SQLException if an error occurs while deleting the video game from the collection
      */
-    public void deleteVideoGame(Connection conn, int vgnr) throws SQLException {
+    public void deleteVideoGame(Connection conn, int vgnr) {
         String sql = "delete from contained_in where cnr = ? and vgnr = ?"; // delete the video game from the collection
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, cnr);
             pstmt.setInt(2, vgnr);
             pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
-    /**
-     * Checks if the user owns the required platform for the added video game to a collection
-     * @param conn the Connection object representing the database connection
-     * @param pfnr the platform number to be checked
-     * @return true if the user owns the required platform, false otherwise
-     * @throws SQLException if an error occurs while checking the platform ownership
-     */
-    public boolean checkPlatformOwnership(Connection conn, int pfnr) throws SQLException {
-        String sql = "select count(*) from owns where pfnr = ? and username = ?"; // counts the amount of roles that match the pfnr and username
+    public List<VideoGame> getVideoGames(Connection conn) {
+        String sql = "SELECT * FROM video_game vg LEFT JOIN contained_in ci ON vg.vgnr = ci.vgnr LEFT JOIN collection c ON ci.cnr = c.cnr WHERE c.cnr = ?";
+        List<VideoGame> videoGames = new ArrayList<>();
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, pfnr);
-            pstmt.setString(2, username);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1) > 0; // if the count is greater than 0, the user owns the platform
-                }
+            pstmt.setInt(1, cnr);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                VideoGame game = new VideoGame(rs.getInt("vgnr"), rs.getString("title"), rs.getString("esrbrating"));
+                videoGames.add(game);
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        return false;
+        return videoGames;
+/*
+ * SELECT DISTINCT vg.title, vg.esrbrating FROM video_game vg " + 
+                        "LEFT JOIN available_on ao ON vg.vgnr = ao.vgnr LEFT JOIN platform p ON ao.pfnr = p.pfnr " +
+                        "LEFT JOIN developed_by db ON vg.vgnr = db.vgnr LEFT JOIN developer d ON db.dnr = d.dnr " +
+                        "LEFT JOIN is_genre ig ON vg.vgnr = ig.vgnr LEFT JOIN genre g ON ig.gnr = g.gnr " +
+                        "WHERE 1 = 1 
+ */
     }
-
 }
