@@ -153,7 +153,7 @@ public class VideoGame {
     }
 
     public boolean checkPlatformOwnership(Connection conn, User user) {
-        String sql = "SELECT count(*) FROM (SELECT o.pfnr FROM owns o WHERE o.username = ? INTERSECT SELECT ao.pfnr FROM available_on ao WHERE ao.vgnr = ?)"; // counts the amount of roles that match the pfnr and username
+        String sql = "SELECT count(*) FROM (SELECT o.pfnr FROM owns o WHERE o.username = ? INTERSECT SELECT ao.pfnr FROM available_on ao WHERE ao.vgnr = ?) n"; // counts the amount of roles that match the pfnr and username
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, user.getUsername());
             pstmt.setInt(2, vgnr);

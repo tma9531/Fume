@@ -31,15 +31,11 @@ public class PTUI {
     public static void main(String[] args) throws SQLException {
         SSHConnectionManager sshManager = new SSHConnectionManager();
         DatabaseConnectionManager dbManager = new DatabaseConnectionManager();
-        try {
-            FileReader read = new FileReader(LOGIN_DETAILS_PATH);
-            BufferedReader br = new BufferedReader(read);
+        try (FileReader read = new FileReader(LOGIN_DETAILS_PATH); BufferedReader br = new BufferedReader(read)) {
             String user = br.readLine().trim();
-            String password = br.readLine().trim();
-
+            String password = br.readLine().trim();    
             sshManager.connect(user, password);
             dbManager.connect(user, password);
-            
             var conn = dbManager.getConnection();
             if (conn != null) {
                 System.out.println("Database connection established successfully.");
@@ -48,14 +44,11 @@ public class PTUI {
                 System.err.println("Failed to establish database connection.");
             }
             scan.close();
-            br.close();
-            read.close();
         } catch (JSchException e) {
             System.out.println("Bad Credentials");
         } 
         catch (Exception e) {
             System.out.println("SSH Connection failed.");
-            e.printStackTrace();
         }
         finally {
             dbManager.disconnect();
@@ -73,19 +66,19 @@ public class PTUI {
             System.out.println("[0] - Create an account");
             System.out.println("[1] - Login");
             System.out.println("[9] - Exit");
-            int choice = Integer.parseInt(scan.nextLine().trim());
+            int choice = 10;
+            try {
+                choice = Integer.parseInt(scan.nextLine().trim());
+            } catch (NumberFormatException e) {
+            }
             switch (choice) {
-                case 0:
-                    createUser(conn);
-                    break;
-                case 1:
-                    login(conn);
-                    break;
-                case 9:
-                    System.out.println("Exiting...");;
+                case 0 -> createUser(conn);
+                case 1 -> login(conn);
+                case 9 -> {
+                    System.out.println("Exiting...");
                     return;
-                default:
-                    System.out.println("Invalid choice. Please try again.");
+                }
+                default -> System.out.println("Invalid choice. Please try again.");
             }
         }
         if (currentUser != null) {
@@ -106,36 +99,32 @@ public class PTUI {
             System.out.println("[5] - Search video games");
             System.out.println("...");
             System.out.println("[9] - Logout");
-            int choice = Integer.parseInt(scan.nextLine().trim());
+            int choice = 10;
+            try {
+                choice = Integer.parseInt(scan.nextLine().trim());
+            } catch (NumberFormatException e) {
+            }
             switch (choice) {
-                case 0:
-                    displayCollectionMenu(conn);
-                    break;
-                case 1:
-                    break;
-                case 2:
-                    break;
-                case 3:
-                    displayFollowers(conn);
-                    break;
-                case 4:
-                    displayFollowing(conn);
-                    break;
-                case 5:
-                    searchAllVideoGames(conn);
-                    break;
-                case 9:
+                case 0 -> displayCollectionMenu(conn);
+                case 1 -> {
+                }
+                case 2 -> {
+                }
+                case 3 -> displayFollowers(conn);
+                case 4 -> displayFollowing(conn);
+                case 5 -> searchAllVideoGames(conn);
+                case 9 -> {
                     System.out.println("Logging out...");
                     currentUser = null;
                     displayLoginMenu(conn);
                     return;
-                default:
-                    System.out.println("Invalid choice. Please try again.");
+                }
+                default -> System.out.println("Invalid choice. Please try again.");
             }
         }
     }
 
-    //show following
+    
     public static void displayFollowing(Connection conn) throws SQLException{
         menuLoop:
         while (true) {
@@ -143,8 +132,7 @@ public class PTUI {
             System.out.println("Following for user " + currentUser.getUsername() + ":");
             int count = 0;
             int page = 0;
-            int numPages = 0;
-
+            int numPages;
             System.out.println("Select the follower you wish to unfollow.");
             numPages = (following.size() / 6) + (following.size() % 6 == 0 ? 0 : 1);
             System.out.println("Page (" + (page + 1) + "/" + numPages + ")");
@@ -167,47 +155,39 @@ public class PTUI {
             }
             System.out.println("[8] - Follow user");
             System.out.println("[9] - Return to main menu");
-            int choice = Integer.parseInt(scan.nextLine().trim());
+            int choice = 10;
+            try {
+                choice = Integer.parseInt(scan.nextLine().trim());
+            } catch (NumberFormatException e) {
+            }
             switch (choice) {
-                case 0:
-                    currentUser.unfollow(conn, following.get(0).getUsername());
-                    break;
-                case 1:
-                    currentUser.unfollow(conn, following.get(1).getUsername());
-                    break;
-                case 2:
-                    currentUser.unfollow(conn, following.get(2).getUsername());
-                    break;
-                case 3:
-                    currentUser.unfollow(conn, following.get(3).getUsername());
-                    break;
-                case 4:
-                    currentUser.unfollow(conn, following.get(4).getUsername());
-                    break;
-                case 5:
-                    currentUser.unfollow(conn, following.get(5).getUsername());
-                    break;
-                case 6:
+                case 0 -> currentUser.unfollow(conn, following.get(0).getUsername());
+                case 1 -> currentUser.unfollow(conn, following.get(1).getUsername());
+                case 2 -> currentUser.unfollow(conn, following.get(2).getUsername());
+                case 3 -> currentUser.unfollow(conn, following.get(3).getUsername());
+                case 4 -> currentUser.unfollow(conn, following.get(4).getUsername());
+                case 5 -> currentUser.unfollow(conn, following.get(5).getUsername());
+                case 6 -> {
                     if (page > 0) {
                         page--;
                     }
-                    break;
-                case 7:
+                }
+                case 7 -> {
                     if (page < numPages - 1) {
                         page++;
                     }
-                    break;
-                case 8:
+                }
+                case 8 -> {
                     System.out.print("Enter the email of the user you wish to follow: ");
                     String email = scan.nextLine().trim();
                 
                     currentUser.follow(conn, email);
-                    break;
-                case 9:
+                }
+                case 9 -> {
                     System.out.println("Returning to main menu...");
                     break menuLoop;
-                default:
-                    System.out.println("Invalid choice. Please try again.");
+                }
+                default -> System.out.println("Invalid choice. Please try again.");
             }
 
             for (User follow : following) {
@@ -278,7 +258,11 @@ public class PTUI {
             System.out.println("[7] - Rename this collection");
             System.out.println("[8] - Delete this collection");
             System.out.println("[9] - Return to main menu");
-            int choice = Integer.parseInt(scan.nextLine().trim());
+            int choice = 10;
+            try {
+                choice = Integer.parseInt(scan.nextLine().trim());
+            } catch (NumberFormatException e) {
+            }
             switch (choice) {
                 case 0:
                 case 1:
@@ -368,7 +352,11 @@ public class PTUI {
             }
             System.out.println("[8] - Create new collection");
             System.out.println("[9] - Cancel");
-            int choice = Integer.parseInt(scan.nextLine().trim());
+            int choice = 10;
+            try {
+                choice = Integer.parseInt(scan.nextLine().trim());
+            } catch (NumberFormatException e) {
+            }
             switch (choice) {
                 case 0:
                 case 1:
@@ -552,7 +540,11 @@ public class PTUI {
                 System.out.println("[8] - Next page");
             }
             System.out.println("[9] - Return to main menu");
-            int choice = Integer.parseInt(scan.nextLine().trim());
+            int choice = 10;
+            try {
+                choice = Integer.parseInt(scan.nextLine().trim());
+            } catch (NumberFormatException e) {
+            }
             switch (choice) {
                 case 0:
                 case 1:
@@ -589,7 +581,11 @@ public class PTUI {
         System.out.println("[1] - Play this video game");
         System.out.println("[2] - Add this video game to a collection");
         System.out.println("[9] - Cancel");
-        int choice = Integer.parseInt(scan.nextLine().trim());
+        int choice = 10;
+        try {
+            choice = Integer.parseInt(scan.nextLine().trim());
+        } catch (NumberFormatException e) {
+        }
         switch (choice) {
             case 0:
                 rateVideoGame(conn, videoGame);
@@ -616,7 +612,11 @@ public class PTUI {
     private static void rateVideoGame(Connection conn, VideoGame videoGame) {
         System.out.println("\nEnter your rating for '" + videoGame.getTitle() + "': ");
         String ratingStr = scan.nextLine().trim();
-        int rating = ratingStr.isEmpty() ? -1 : Integer.parseInt(ratingStr);
+        int rating = 0;
+        try {
+            rating = ratingStr.isEmpty() ? -1 : Integer.parseInt(ratingStr);
+        } catch (NumberFormatException e) {
+        }
         if (rating < 1 || rating > 5) {
             System.out.println("Please enter a valid rating between 1 and 5.");
             return;
@@ -638,6 +638,13 @@ public class PTUI {
     }
 
     private static void addVideoGameToCollection(Connection conn, VideoGame videoGame, Collection collection) {
+        List<VideoGame> videoGames = collection.getVideoGames(conn);
+        for (VideoGame vg : videoGames) {
+            if (vg.getVgnr() == videoGame.getVgnr()) {
+                System.out.println("You already have this video game in your collection!");
+                return;
+            }
+        }
         collection.addVideoGame(conn, videoGame.getVgnr());
         if (!videoGame.checkPlatformOwnership(conn, currentUser)) {
             System.out.println("WARNING: You do not own any platforms this video game is on.");
