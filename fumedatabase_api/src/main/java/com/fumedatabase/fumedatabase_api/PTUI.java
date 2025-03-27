@@ -3,7 +3,6 @@ package com.fumedatabase.fumedatabase_api;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -27,6 +26,7 @@ public class PTUI {
     /**
      * Main method to establish SSH and database connections, and display the main menu.
      * @param args command line arguments (not used)
+     * @throws SQLException if disconnecting from the database fails
      */
     public static void main(String[] args) throws SQLException {
         SSHConnectionManager sshManager = new SSHConnectionManager();
@@ -57,7 +57,7 @@ public class PTUI {
     }
 
     /**
-     * Displays a main menu for users to do specific task
+     * Displays a login menu for users to create an account or log in
      * @param conn the Connection object representing the database connection
      */
     private static void displayLoginMenu(Connection conn)throws SQLException{
@@ -86,6 +86,51 @@ public class PTUI {
         }
     }
 
+    /**
+     * Creates a new user by prompting for username, password, and email.
+     * @param conn the Connection object representing the database connection
+     * @throws SQLException if an error occurs while saving the user to the database
+     */
+    private static void createUser(Connection conn){
+        System.out.print("Enter username: ");
+        String username = scan.nextLine().trim();
+        System.out.print("Enter password: ");
+        String password = scan.nextLine().trim();
+        User user = new User(username, password);
+        try {
+            user.saveToDatabase(conn);
+            System.out.println("User created successfully.");
+        } catch (SQLException e) {
+            System.err.println("Error creating user: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Logs in as an existing user with a username and password.
+     * @param conn
+     */
+    private static void login(Connection conn){
+        System.out.print("Enter username: ");
+        String username = scan.nextLine().trim();
+        System.out.print("Enter password: ");
+        String password = scan.nextLine().trim();
+        try {
+            currentUser = User.verifyCredentials(conn, username, password); 
+            if (currentUser != null) {
+                System.out.println("Login successful. Welcome " + currentUser.getUsername() + "!");
+                currentUser.updateLastAccessDate(conn);
+            } else {
+                System.out.println("Invalid username or password. Please try again.");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error during login: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Displays a main menu for users to do various actions
+     * @param conn the Connection object representing the database connection
+     */
     private static void displayMainMenu(Connection conn) throws SQLException{
         while (true) {
             System.out.println("\nWelcome, " + (currentUser != null ? currentUser.getUsername() : "___") + "!");
@@ -124,95 +169,10 @@ public class PTUI {
         }
     }
 
-    
-    public static void displayFollowing(Connection conn) throws SQLException{
-        menuLoop:
-        while (true) {
-            List <User> following = currentUser.getFollowing(conn);
-            System.out.println("Following for user " + currentUser.getUsername() + ":");
-            int count = 0;
-            int page = 0;
-            int numPages;
-            System.out.println("Select the follower you wish to unfollow.");
-            numPages = (following.size() / 6) + (following.size() % 6 == 0 ? 0 : 1);
-            System.out.println("Page (" + (page + 1) + "/" + numPages + ")");
-            if (following.isEmpty()) {
-                System.out.println("You have no one you're following.");
-            }
-            for (int i = 6 * page; i < 6 * page + 6; i++) {
-                if (i >= following.size()) {
-                    break;
-                }
-                User f = following.get(i);
-                System.out.println("[" + i + "] - " + f.getUsername());
-            }
-            System.out.println("...");
-            if (page > 0) {
-                System.out.println("[6] - Previous page");
-            }
-            if (page < numPages - 1) {
-                System.out.println("[7] - Next page");
-            }
-            System.out.println("[8] - Follow user");
-            System.out.println("[9] - Return to main menu");
-            int choice = 10;
-            try {
-                choice = Integer.parseInt(scan.nextLine().trim());
-            } catch (NumberFormatException e) {
-            }
-            switch (choice) {
-                case 0 -> currentUser.unfollow(conn, following.get(0).getUsername());
-                case 1 -> currentUser.unfollow(conn, following.get(1).getUsername());
-                case 2 -> currentUser.unfollow(conn, following.get(2).getUsername());
-                case 3 -> currentUser.unfollow(conn, following.get(3).getUsername());
-                case 4 -> currentUser.unfollow(conn, following.get(4).getUsername());
-                case 5 -> currentUser.unfollow(conn, following.get(5).getUsername());
-                case 6 -> {
-                    if (page > 0) {
-                        page--;
-                    }
-                }
-                case 7 -> {
-                    if (page < numPages - 1) {
-                        page++;
-                    }
-                }
-                case 8 -> {
-                    System.out.print("Enter the email of the user you wish to follow: ");
-                    String email = scan.nextLine().trim();
-                
-                    currentUser.follow(conn, email);
-                }
-                case 9 -> {
-                    System.out.println("Returning to main menu...");
-                    break menuLoop;
-                }
-                default -> System.out.println("Invalid choice. Please try again.");
-            }
-
-            for (User follow : following) {
-                System.out.println(count + " - " + follow.getUsername());
-                count++;
-            }
-        }
-    }
-
-    //Show Followers
-    //TODO add page system
-    public static void displayFollowers(Connection conn){
-        List <User> followers = currentUser.getFollowers(conn);
-        System.out.println("Followers for user " + currentUser.getUsername() + ":");
-        int count = 0;
-        for (User follower : followers) {
-            System.out.println(count + ". " + follower.getUsername());
-            count++;
-        }
-        System.out.println("Press ENTER to return to main menu.");
-        scan.nextLine();
-    }
-
-    // COLLECTION MENU
-
+    /**
+     * Displays a collection menu for users to do various collection-related actions
+     * @param conn the Connection object representing the database connection
+     */
     private static void displayCollectionMenu(Connection conn) {
         System.out.println("\nMy collections:");
         Collection collection = pickCollection(conn);
@@ -220,7 +180,6 @@ public class PTUI {
             System.out.println("Returning to main menu...");
             return;
         }
-
         int page = 0;
         int numPages;
         gamesInCollectionLoop:
@@ -233,7 +192,7 @@ public class PTUI {
                     maxVideoGameTitleLength = videoGame.getTitle().length();
                 }
             }
-            maxVideoGameTitleLength += 2; // Add padding
+            maxVideoGameTitleLength += 2;
             System.out.println("\nTo remove a game from this collection, enter the corresponding number.");
             System.out.println("Page (" + (page + 1) + "/" + numPages + ")");
             if (videoGames.isEmpty()) {
@@ -264,49 +223,49 @@ public class PTUI {
             } catch (NumberFormatException e) {
             }
             switch (choice) {
-                case 0:
-                case 1:
-                case 2:
-                case 3:
-                    collection.deleteVideoGame(conn, videoGames.get(choice + page * 7).getVgnr());
-                    System.out.println("should have deleted game, number: " + (choice + page * 7) + ", vgnr: " + videoGames.get(choice + page * 7).getVgnr());
-                    break;
-                case 4:
+                case 0, 1, 2, 3 -> {
+                    if (choice + page * 4 < videoGames.size()) collection.deleteVideoGame(conn, videoGames.get(choice + page * 4).getVgnr());
+                }
+                case 4 -> {
                     if (page > 0) {
                         page--;
                     }
-                    break;
-                case 5:
+                }
+                case 5 -> {
                     if (page < numPages - 1) {
                         page++;
                     }
-                    break;
-                case 6:
+                }
+                case 6 -> {
                     Random rand = new Random();
                     VideoGame randomVideoGame = videoGames.get(rand.nextInt(videoGames.size()));
                     System.out.print("Your random game is '" + randomVideoGame.getTitle() + "''.");
                     playVideoGame(conn, randomVideoGame);
-                    break;
-                case 7:
+                }
+                case 7 -> {
                     System.out.print("Enter a new name for this collection: ");
                     String newName = scan.nextLine().trim();
                     collection.rename(conn, newName);
                     System.out.println("Renamed collection!");
-                    break;
-                case 8:
+                }
+                case 8 -> {
                     collection.delete(conn);
                     System.out.println("Deleted collection!");
                     break gamesInCollectionLoop;
-                case 9:
+                }
+                case 9 -> {
                     System.out.println("Returning to main menu...");
                     break gamesInCollectionLoop;
-                default:
-                    System.out.println("Invalid choice. Please try again.");
+                }
+                default -> System.out.println("Invalid choice. Please try again.");
             }
         }
-        
     }
 
+    /**
+     * Displays a throwaway collection selection menu
+     * @param conn the Connection object representing the database connection
+     */
     private static Collection pickCollection(Connection conn) {
         int page = 0;
         int numPages = 0;
@@ -328,8 +287,8 @@ public class PTUI {
                     maxCollectionNumGamesLength = String.valueOf(collection.getNumGames()).length();
                 }
             }
-            maxCollectionNameLength += 2; // Add padding
-            maxCollectionNumGamesLength += 2 + 6; // Add padding
+            maxCollectionNameLength += 2;
+            maxCollectionNumGamesLength += 2 + 6;
             System.out.println("Page (" + (page + 1) + "/" + numPages + ")");
             if (collections.isEmpty()) {
                 System.out.println("You have no collections.");
@@ -358,81 +317,28 @@ public class PTUI {
             } catch (NumberFormatException e) {
             }
             switch (choice) {
-                case 0:
-                case 1:
-                case 2:
-                case 3:
-                case 4:
-                case 5:
-                    return collections.get(choice + page * 6);
-                case 6:
-                    if (page > 0) {
-                        page--;
-                    }
-                    break;
-                case 7:
-                    if (page < numPages - 1) {
-                        page++;
-                    }
-                    break;
-                case 8:
-                    createCollection(conn);
-                case 9:
+                case 0, 1, 2, 3, 4, 5 -> {
+                    if (choice + page * 6 < collections.size()) return collections.get(choice + page * 6);
+                }
+                case 6 -> {
+                    if (page > 0) page--;
+                }
+                case 7 -> {
+                    if (page < numPages - 1) page++;
+                }
+                case 8 -> createCollection(conn);
+                case 9 -> {
                     System.out.println("Cancelling...");
                     return null;
-                default:
-                    System.out.println("Invalid choice. Please try again.");
+                }
+                default -> System.out.println("Invalid choice. Please try again.");
             }
         }
     }
-
-    
-
-    // USER METHODS FOR LOGIN SCREEN
-
-    /**
-     * Creates a new user by prompting for username, password, and email.
-     * @param conn the Connection object representing the database connection
-     * @throws SQLException if an error occurs while saving the user to the database
-     */
-    private static void createUser(Connection conn){
-        System.out.print("Enter username: ");
-        String username = scan.nextLine().trim();
-        System.out.print("Enter password: ");
-        String password = scan.nextLine().trim();
-        User user = new User(username, password);
-        try {
-            user.saveToDatabase(conn);
-            System.out.println("User created successfully.");
-        } catch (SQLException e) {
-            System.err.println("Error creating user: " + e.getMessage());
-        }
-    }
-
-    private static void login(Connection conn){
-        System.out.print("Enter username: ");
-        String username = scan.nextLine().trim();
-        System.out.print("Enter password: ");
-        String password = scan.nextLine().trim();
-        try {
-            currentUser = User.verifyCredentials(conn, username, password); 
-            if (currentUser != null) {
-                System.out.println("Login successful. Welcome " + currentUser.getUsername() + "!");
-                currentUser.updateLastAccessDate(conn); // update last access date
-            } else {
-                System.out.println("Invalid username or password. Please try again.");
-            }
-        } catch (SQLException e) {
-            System.err.println("Error during login: " + e.getMessage());
-        }
-    }
-
-    // COLLECTION METHODS FOR MAIN MENU
 
     /**
      * Create a new collection by prompting for the collection name.
      * @param conn the Connection object representing the database connection
-     * @throws SQLException if an error occurs while saving the collection to the database
      */
     private static void createCollection(Connection conn){
         System.out.print("Enter collection name: ");
@@ -447,33 +353,132 @@ public class PTUI {
         }
     }
 
-    // HELPER METHODS FOR GAME AND PLATFORM NUMBER RETRIEVAL 
-
     /**
-     * Retrieves the platform number (pfnr) by platform name from the database.
+     * Displays a followers menu for users to see who is following them
      * @param conn the Connection object representing the database connection
-     * @param platformName the name of the platform
-     * @return the platform number (pfnr) if found, otherwise -1
      */
-    private static int getPfnrByPlatformName(Connection conn, String platformName) throws SQLException {
-        String sql = "select pfnr from platform where name = ?";
-        try (var pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, platformName);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("pfnr");
+    public static void displayFollowers(Connection conn){
+        menuLoop:
+        while (true) {
+            List <User> followers = currentUser.getFollowers(conn);
+            System.out.println("People following " + currentUser.getUsername() + ":");
+            int page = 0;
+            int numPages;
+            numPages = (followers.size() / 7) + (followers.size() % 7 == 0 ? 0 : 1);
+            System.out.println("Page (" + (page + 1) + "/" + numPages + ")");
+            if (followers.isEmpty()) {
+                System.out.println("No one is following you.");
+            }
+            for (int i = 7 * page; i < 7 * page + 7; i++) {
+                if (i >= followers.size()) {
+                    break;
                 }
+                User f = followers.get(i);
+                System.out.println("[" + i + "] - " + f.getUsername());
+            }
+            System.out.println("...");
+            if (page > 0) {
+                System.out.println("[7] - Previous page");
+            }
+            if (page < numPages - 1) {
+                System.out.println("[8] - Next page");
+            }
+            System.out.println("[9] - Return to main menu");
+            int choice = 10;
+            try {
+                choice = Integer.parseInt(scan.nextLine().trim());
+            } catch (NumberFormatException e) {
+            }
+            switch (choice) {
+                case 7 -> {
+                    if (page > 0) {
+                        page--;
+                    }
+                }
+                case 8 -> {
+                    if (page < numPages - 1) {
+                        page++;
+                    }
+                }
+                case 9 -> {
+                    System.out.println("Returning to main menu...");
+                    break menuLoop;
+                }
+                default -> System.out.println("Invalid choice. Please try again.");
             }
         }
-        return -1; // Platform not found
     }
 
-    // VIDEO GAME METHODS FOR MAIN MENU
+    /**
+     * Displays a following menu for users to follow and unfollow other users
+     * @param conn the Connection object representing the database connection
+     */
+    public static void displayFollowing(Connection conn) throws SQLException{
+        menuLoop:
+        while (true) {
+            List <User> following = currentUser.getFollowing(conn);
+            System.out.println("Following for user " + currentUser.getUsername() + ":");
+            int page = 0;
+            int numPages;
+            System.out.println("Select the follower you wish to unfollow.");
+            numPages = (following.size() / 6) + (following.size() % 6 == 0 ? 0 : 1);
+            System.out.println("Page (" + (page + 1) + "/" + numPages + ")");
+            if (following.isEmpty()) {
+                System.out.println("You have no one you're following.");
+            }
+            for (int i = 6 * page; i < 6 * page + 6; i++) {
+                if (i >= following.size()) {
+                    break;
+                }
+                User f = following.get(i);
+                System.out.println("[" + i + "] - " + f.getUsername());
+            }
+            System.out.println("...");
+            if (page > 0) {
+                System.out.println("[6] - Previous page");
+            }
+            if (page < numPages - 1) {
+                System.out.println("[7] - Next page");
+            }
+            System.out.println("[8] - Follow user");
+            System.out.println("[9] - Return to main menu");
+            int choice = 10;
+            try {
+                choice = Integer.parseInt(scan.nextLine().trim());
+            } catch (NumberFormatException e) {
+            }
+            switch (choice) {
+                case 0, 1, 2, 3, 4, 5 -> {
+                    if (choice + page * 6 < following.size()) currentUser.unfollow(conn, following.get(choice + page * 6).getUsername());
+                }
+                case 6 -> {
+                    if (page > 0) {
+                        page--;
+                    }
+                }
+                case 7 -> {
+                    if (page < numPages - 1) {
+                        page++;
+                    }
+                }
+                case 8 -> {
+                    System.out.print("Enter the email of the user you wish to follow: ");
+                    String email = scan.nextLine().trim();
+                
+                    currentUser.follow(conn, email);
+                }
+                case 9 -> {
+                    System.out.println("Returning to main menu...");
+                    break menuLoop;
+                }
+                default -> System.out.println("Invalid choice. Please try again.");
+            }
+        }
+    }
 
     /**
      * Displays list of video games based on user input criteria.
      * @param conn
-     * @throws SQLException if an error occurs while searching for video games in the database
      */
     private static void searchAllVideoGames(Connection conn) {
         System.out.print("\nEnter a video game title, a part of a title, or press ENTER to skip: ");
@@ -517,7 +522,7 @@ public class PTUI {
                     maxVideoGameTitleLength = videoGame.getTitle().length();
                 }
             }
-            maxVideoGameTitleLength += 2; // Add padding
+            maxVideoGameTitleLength += 2;
             System.out.println("\nSelect the game you wish to interact with.");
             System.out.println("Video games that matched your search:");
             System.out.println("Page (" + (page + 1) + "/" + numPages + ")");
@@ -546,34 +551,33 @@ public class PTUI {
             } catch (NumberFormatException e) {
             }
             switch (choice) {
-                case 0:
-                case 1:
-                case 2:
-                case 3:
-                case 4:
-                case 5:
-                case 6:
-                    interactVideoGame(conn, videoGames.get(choice + page * 7));
-                    break;
-                case 7:
+                case 0, 1, 2, 3, 4, 5, 6 -> {
+                    if (choice + page * 7 < videoGames.size()) interactVideoGame(conn, videoGames.get(choice + page * 7));
+                }
+                case 7 -> {
                     if (page > 0) {
                         page--;
                     }
-                    break;
-                case 8:
+                }
+                case 8 -> {
                     if (page < numPages - 1) {
                         page++;
                     }
-                    break;
-                case 9:
+                }
+                case 9 -> {
                     System.out.println("Returning to main menu...");
                     break searchLoop;
-                default:
-                    System.out.println("Invalid choice. Please try again.");
+                }
+                default -> System.out.println("Invalid choice. Please try again.");
             }
         }
     }
 
+    /**
+     * Displays interaction options after a user selects a video game.
+     * @param conn the Connection object representing the database connection
+     * @param videoGame the selected video game
+     */
     private static void interactVideoGame(Connection conn, VideoGame videoGame) {
         System.out.println("\nYou selected '" + videoGame.getTitle() + "'.");
         System.out.println("Please select one of the following options:");
@@ -587,28 +591,26 @@ public class PTUI {
         } catch (NumberFormatException e) {
         }
         switch (choice) {
-            case 0:
-                rateVideoGame(conn, videoGame);
-                break;
-            case 1:
-                playVideoGame(conn, videoGame);
-                break;
-            case 2:
+            case 0 -> rateVideoGame(conn, videoGame);
+            case 1 -> playVideoGame(conn, videoGame);
+            case 2 -> {
                 System.out.println("\nChoose the collection to add '" + videoGame.getTitle() + "' to.");
                 Collection collection = pickCollection(conn);
                 if (collection == null) {
                     break;
                 }
                 addVideoGameToCollection(conn, videoGame, collection);
-                break;
-            case 9:
-                System.out.println("Cancelling selection...");
-                break;
-            default:
-                System.out.println("Invalid choice. Please try again.");
+            }
+            case 9 -> System.out.println("Cancelling selection...");
+            default -> System.out.println("Invalid choice. Please try again.");
         }
     }
 
+    /**
+     * Rating selection for a user to rate a video game.
+     * @param conn the Connection object representing the database connection
+     * @param videoGame the selected video game
+     */
     private static void rateVideoGame(Connection conn, VideoGame videoGame) {
         System.out.println("\nEnter your rating for '" + videoGame.getTitle() + "': ");
         String ratingStr = scan.nextLine().trim();
@@ -625,6 +627,11 @@ public class PTUI {
         System.out.println("Succesfully added rating.");
     }
 
+    /**
+     * Play menu for a user to "play" a video game (logs time played)
+     * @param conn the Connection object representing the database connection
+     * @param videoGame the selected video game
+     */
     private static void playVideoGame(Connection conn, VideoGame videoGame) {
         long currentTimeMillis = System.currentTimeMillis();
         Timestamp startTimestamp = new Timestamp(currentTimeMillis);
@@ -637,6 +644,12 @@ public class PTUI {
         System.out.println("Finished playing '" + videoGame.getTitle() + "' at " + endTimestamp.toString() + ".");
     }
 
+    /**
+     * Menu to add a video game to a user's existing collection
+     * @param conn the Connection object representing the database connection
+     * @param videoGame the selected video game
+     * @param collection the collection the user wants to add it to
+     */
     private static void addVideoGameToCollection(Connection conn, VideoGame videoGame, Collection collection) {
         List<VideoGame> videoGames = collection.getVideoGames(conn);
         for (VideoGame vg : videoGames) {
