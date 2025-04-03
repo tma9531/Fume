@@ -6,17 +6,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.ArrayList;
 
+/**
+ * Represents a user in the system.
+ */
 public class User {
-    private String username;
-    private String password;
+    private final String username;
+    private final String password;
     private LocalDate creationDate;
     private LocalDate lastAccessDate;
 
     /**
-     * Constructor to initialize a User object with the provided username, password, and email.
+     * Constructor to initialize a User object with the provided username and password.
      * @param username the username of the user
      * @param password the password of the user
      */
@@ -27,50 +29,37 @@ public class User {
         this.lastAccessDate = LocalDate.now();
     }
 
-    public User (String username){
+    /**
+     * Constructor to initialize a User object with the provided username (password is set to null).
+     * @param username the username of the user
+     */
+    public User(String username) {
         this.username = username;
-        this.password = "";
+        this.password = null;
     }
 
-    /**
-     * Returns the username of the user.
-     * @return the username of the user
-     */
     public String getUsername() {
         return username;
     }
 
-    /**
-     * Returns the password of the user.
-     * @return the password of the user
-     */
     public String getPassword() {
         return password;
     }
 
-    /**
-     * Returns the creation date of the user.
-     * @return the creation date of the user
-     */
     public LocalDate getCreationDate() {
         return creationDate;
     }
 
-    /**
-     * Returns the last access date of the user.
-     * @return the last access date of the user
-     */
     public LocalDate getLastAccessDate() {
         return lastAccessDate;
     }
 
     /**
-     * Saves the user information to the database.
+     * Saves the user to the database.
      * @param conn the Connection object representing the database connection
-     * @throws SQLException
      */
-    public void saveToDatabase(Connection conn) throws SQLException {
-        // sql command to insert a new user into the database
+    @SuppressWarnings("CallToPrintStackTrace")
+    public void saveToDatabase(Connection conn) {
         String sql = "insert into users (username, password, creationdate, lastaccessdate) values (?, ?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, username);
@@ -78,6 +67,8 @@ public class User {
             pstmt.setDate(3, java.sql.Date.valueOf(creationDate));
             pstmt.setDate(4, java.sql.Date.valueOf(lastAccessDate));
             pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
@@ -88,7 +79,8 @@ public class User {
      * @param password the password of the user trying to log in
      * @return the user that is currently logged in
      */
-    public static User verifyCredentials(Connection conn, String username, String password) throws SQLException {
+    @SuppressWarnings("CallToPrintStackTrace")
+    public static User verifyCredentials(Connection conn, String username, String password) {
         String sql = "SELECT * FROM users WHERE username = ? AND password = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, username);
@@ -102,27 +94,38 @@ public class User {
             } else {
                 return null; // Invalid credentials
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
+        return null; // Error occurred
     }
 
     /**
      * Updates the last access date of the user in the database to the current date
      * @param conn the Connection object representing the database connection
-     * @throws SQLException
      */
-    public void updateLastAccessDate(Connection conn) throws SQLException {
+    @SuppressWarnings("CallToPrintStackTrace")
+    public void updateLastAccessDate(Connection conn) {
         String sql = "update users set lastaccessdate = current_date where username = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, username);
             pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
-    public void follow(Connection conn, String em) throws SQLException{
+    /**
+     * Follow another user by inserting a record into the follows table
+     * @param conn the Connection object representing the database connection
+     * @param email the email of the user to be followed
+     */
+    @SuppressWarnings("CallToPrintStackTrace")
+    public void follow(Connection conn, String email) {
         String sql = "insert into follows (userfollowing, userbeingfollowed) values (?, (select username from email where email = ?))";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, this.username);
-            pstmt.setString(2, em);
+            pstmt.setString(2, email);
             pstmt.executeUpdate();
 
         }catch (SQLException e){
@@ -130,6 +133,12 @@ public class User {
         }
     }
 
+    /**
+     * Unfollow another user by deleting the record from the follows table
+     * @param conn the Connection object representing the database connection
+     * @param unfollow the email of the user to be unfollowed
+     */
+    @SuppressWarnings("CallToPrintStackTrace")
     public void unfollow(Connection conn, String unfollow){
         String sql = "delete from follows where userfollowing = ? and userbeingfollowed = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -141,12 +150,18 @@ public class User {
         }
     }
 
+    /**
+     * Gets the followers of the user by querying the follows table
+     * @param conn the Connection object representing the database connection
+     * @return list of followers
+     */
+    @SuppressWarnings("CallToPrintStackTrace")
     public ArrayList<User> getFollowers(Connection conn){
         String sql = "select userfollowing from follows where userbeingfollowed = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, this.username);
             ResultSet rs = pstmt.executeQuery();
-            ArrayList<User> followers = new ArrayList<User>();
+            ArrayList<User> followers = new ArrayList<>();
             while (rs.next()) {
                 User follower = new User(rs.getString("userfollowing"));
                 followers.add(follower);
@@ -155,15 +170,21 @@ public class User {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-                return null;
+        return null; // Error occurred
     }
 
+    /**
+     * Gets the users that the current user is following by querying the follows table
+     * @param conn the Connection object representing the database connection
+     * @return list of users the user is following
+     */
+    @SuppressWarnings("CallToPrintStackTrace")
     public ArrayList<User> getFollowing(Connection conn){
         String sql = "select userbeingfollowed from follows where userfollowing = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, this.username);
             ResultSet rs = pstmt.executeQuery();
-            ArrayList<User> following = new ArrayList<User>();
+            ArrayList<User> following = new ArrayList<>();
             while (rs.next()) {
                 User follow = new User(rs.getString("userbeingfollowed"));
                 following.add(follow);
@@ -172,9 +193,16 @@ public class User {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-                return null;
+        return null; // Error occurred
     }
 
+    /**
+     * Rate a video game by inserting a record into the rates table
+     * @param conn the Connection object representing the database connection
+     * @param game the video game to be rated
+     * @param rating the rating given by the user (1 to 5)
+     */
+    @SuppressWarnings("CallToPrintStackTrace")
     public void rateVideoGame(Connection conn, VideoGame game, int rating) {
         String sql = "INSERT INTO rates VALUES (?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -187,6 +215,14 @@ public class User {
         }
     }
 
+    /**
+     * Play a video game by inserting a record into the plays table
+     * @param conn the Connection object representing the database connection
+     * @param start timestamp the user started playing
+     * @param end timestamp the user finished playing
+     * @param game the video game being played
+     */
+    @SuppressWarnings("CallToPrintStackTrace")
     public void playVideoGame(Connection conn, Timestamp start, Timestamp end, VideoGame game) {
         String sql = "INSERT INTO plays VALUES (?, ?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {

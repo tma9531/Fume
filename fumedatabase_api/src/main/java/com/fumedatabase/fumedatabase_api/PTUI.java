@@ -1,11 +1,11 @@
 package com.fumedatabase.fumedatabase_api;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
@@ -21,14 +21,15 @@ public class PTUI {
 
     final static String LOGIN_DETAILS_PATH = "./fumedatabase_api/docs/login.txt";
     private static User currentUser = null; // Placeholder for the current user
+    private static Connection connection = null;
     static Scanner scan = new Scanner(System.in);
 
     /**
      * Main method to establish SSH and database connections, and display the main menu.
      * @param args command line arguments (not used)
-     * @throws SQLException if disconnecting from the database fails
      */
-    public static void main(String[] args) throws SQLException {
+    @SuppressWarnings("CallToPrintStackTrace")
+    public static void main(String[] args) {
         SSHConnectionManager sshManager = new SSHConnectionManager();
         DatabaseConnectionManager dbManager = new DatabaseConnectionManager();
         try (FileReader read = new FileReader(LOGIN_DETAILS_PATH); BufferedReader br = new BufferedReader(read)) {
@@ -39,16 +40,20 @@ public class PTUI {
             var conn = dbManager.getConnection();
             if (conn != null) {
                 System.out.println("Database connection established successfully.");
-                displayLoginMenu(conn);
+                connection = conn;
+                displayLoginMenu();
             } else {
                 System.err.println("Failed to establish database connection.");
             }
             scan.close();
         } catch (JSchException e) {
             System.out.println("Bad Credentials");
-        } 
-        catch (Exception e) {
-            System.out.println("SSH Connection failed.");
+        } catch (FileNotFoundException e1) {
+            e1.printStackTrace();
+        } catch (IOException e1) {
+            e1.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         finally {
             dbManager.disconnect();
@@ -60,7 +65,7 @@ public class PTUI {
      * Displays a login menu for users to create an account or log in
      * @param conn the Connection object representing the database connection
      */
-    private static void displayLoginMenu(Connection conn)throws SQLException{
+    private static void displayLoginMenu() {
         while (currentUser == null) {
             System.out.println("\nLogin Menu");
             System.out.println("[0] - Create an account");
@@ -72,8 +77,8 @@ public class PTUI {
             } catch (NumberFormatException e) {
             }
             switch (choice) {
-                case 0 -> createUser(conn);
-                case 1 -> login(conn);
+                case 0 -> createUser();
+                case 1 -> login();
                 case 9 -> {
                     System.out.println("Exiting...");
                     return;
@@ -82,48 +87,39 @@ public class PTUI {
             }
         }
         if (currentUser != null) {
-            displayMainMenu(conn);
+            displayMainMenu();
         }
     }
 
     /**
      * Creates a new user by prompting for username, password, and email.
      * @param conn the Connection object representing the database connection
-     * @throws SQLException if an error occurs while saving the user to the database
      */
-    private static void createUser(Connection conn){
+    private static void createUser() {
         System.out.print("Enter username: ");
         String username = scan.nextLine().trim();
         System.out.print("Enter password: ");
         String password = scan.nextLine().trim();
         User user = new User(username, password);
-        try {
-            user.saveToDatabase(conn);
-            System.out.println("User created successfully.");
-        } catch (SQLException e) {
-            System.err.println("Error creating user: " + e.getMessage());
-        }
+        user.saveToDatabase(connection);
+        System.out.println("User created successfully.");
     }
 
     /**
      * Logs in as an existing user with a username and password.
      * @param conn
      */
-    private static void login(Connection conn){
+    private static void login() {
         System.out.print("Enter username: ");
         String username = scan.nextLine().trim();
         System.out.print("Enter password: ");
         String password = scan.nextLine().trim();
-        try {
-            currentUser = User.verifyCredentials(conn, username, password); 
-            if (currentUser != null) {
-                System.out.println("Login successful. Welcome " + currentUser.getUsername() + "!");
-                currentUser.updateLastAccessDate(conn);
-            } else {
-                System.out.println("Invalid username or password. Please try again.");
-            }
-        } catch (SQLException e) {
-            System.err.println("Error during login: " + e.getMessage());
+        currentUser = User.verifyCredentials(connection, username, password); 
+        if (currentUser != null) {
+            System.out.println("Login successful. Welcome " + currentUser.getUsername() + "!");
+            currentUser.updateLastAccessDate(connection);
+        } else {
+            System.out.println("Invalid username or password. Please try again.");
         }
     }
 
@@ -131,7 +127,7 @@ public class PTUI {
      * Displays a main menu for users to do various actions
      * @param conn the Connection object representing the database connection
      */
-    private static void displayMainMenu(Connection conn) throws SQLException{
+    private static void displayMainMenu() {
         while (true) {
             System.out.println("\nWelcome, " + (currentUser != null ? currentUser.getUsername() : "___") + "!");
             System.out.println("Press the number corresponding to your choice: ");
@@ -150,18 +146,18 @@ public class PTUI {
             } catch (NumberFormatException e) {
             }
             switch (choice) {
-                case 0 -> displayCollectionMenu(conn);
+                case 0 -> displayCollectionMenu();
                 case 1 -> {
                 }
                 case 2 -> {
                 }
-                case 3 -> displayFollowers(conn);
-                case 4 -> displayFollowing(conn);
-                case 5 -> searchAllVideoGames(conn);
+                case 3 -> displayFollowers();
+                case 4 -> displayFollowing();
+                case 5 -> searchAllVideoGames();
                 case 9 -> {
                     System.out.println("Logging out...");
                     currentUser = null;
-                    displayLoginMenu(conn);
+                    displayLoginMenu();
                     return;
                 }
                 default -> System.out.println("Invalid choice. Please try again.");
@@ -173,9 +169,9 @@ public class PTUI {
      * Displays a collection menu for users to do various collection-related actions
      * @param conn the Connection object representing the database connection
      */
-    private static void displayCollectionMenu(Connection conn) {
+    private static void displayCollectionMenu() {
         System.out.println("\nMy collections:");
-        Collection collection = pickCollection(conn);
+        Collection collection = pickCollection();
         if (collection == null) {
             System.out.println("Returning to main menu...");
             return;
@@ -184,7 +180,7 @@ public class PTUI {
         int numPages;
         gamesInCollectionLoop:
         while (true) {
-            List<VideoGame> videoGames = collection.getVideoGames(conn);
+            List<VideoGame> videoGames = collection.getVideoGames(connection);
             numPages = (videoGames.size() / 4) + (videoGames.size() % 4 == 0 ? 0 : 1);
             int maxVideoGameTitleLength = 0;
             for (VideoGame videoGame : videoGames) {
@@ -224,7 +220,7 @@ public class PTUI {
             }
             switch (choice) {
                 case 0, 1, 2, 3 -> {
-                    if (choice + page * 4 < videoGames.size()) collection.deleteVideoGame(conn, videoGames.get(choice + page * 4).getVgnr());
+                    if (choice + page * 4 < videoGames.size()) collection.deleteVideoGame(connection, videoGames.get(choice + page * 4).getVgnr());
                 }
                 case 4 -> {
                     if (page > 0) {
@@ -240,16 +236,16 @@ public class PTUI {
                     Random rand = new Random();
                     VideoGame randomVideoGame = videoGames.get(rand.nextInt(videoGames.size()));
                     System.out.print("Your random game is '" + randomVideoGame.getTitle() + "''.");
-                    playVideoGame(conn, randomVideoGame);
+                    playVideoGame(randomVideoGame);
                 }
                 case 7 -> {
                     System.out.print("Enter a new name for this collection: ");
                     String newName = scan.nextLine().trim();
-                    collection.rename(conn, newName);
+                    collection.rename(connection, newName);
                     System.out.println("Renamed collection!");
                 }
                 case 8 -> {
-                    collection.delete(conn);
+                    collection.delete(connection);
                     System.out.println("Deleted collection!");
                     break gamesInCollectionLoop;
                 }
@@ -266,17 +262,11 @@ public class PTUI {
      * Displays a throwaway collection selection menu
      * @param conn the Connection object representing the database connection
      */
-    private static Collection pickCollection(Connection conn) {
-        int page = 0;
-        int numPages = 0;
+    private static Collection pickCollection() {
+        int page = 0, numPages;
         while (true) {
-            List<Collection> collections = new ArrayList<>();
-            try {
-                collections = Collection.getCollectionsByUser(conn, currentUser.getUsername());
-                numPages = (collections.size() / 6) + (collections.size() % 6 == 0 ? 0 : 1);
-            } catch (SQLException e) {
-                System.err.println("Error retrieving collections: " + e.getMessage());
-            }
+            List<Collection> collections = Collection.getCollectionsByUser(connection, currentUser.getUsername());
+            numPages = (collections.size() / 6) + (collections.size() % 6 == 0 ? 0 : 1);
             int maxCollectionNameLength = 0;
             int maxCollectionNumGamesLength = 0;
             for (Collection collection : collections) {
@@ -326,7 +316,7 @@ public class PTUI {
                 case 7 -> {
                     if (page < numPages - 1) page++;
                 }
-                case 8 -> createCollection(conn);
+                case 8 -> createCollection();
                 case 9 -> {
                     System.out.println("Cancelling...");
                     return null;
@@ -340,27 +330,22 @@ public class PTUI {
      * Create a new collection by prompting for the collection name.
      * @param conn the Connection object representing the database connection
      */
-    private static void createCollection(Connection conn){
+    private static void createCollection() {
         System.out.print("Enter collection name: ");
         String collectionName = scan.nextLine().trim();
         Collection collection = new Collection(collectionName, currentUser.getUsername());
-        try{
-            collection.saveToDatabase(conn);
-            System.out.println("Collection created successfully with CN: " + collection.getCnr() + ".");
-        }
-        catch (SQLException e){
-            System.err.println("Error creating collection: " + e.getMessage());
-        }
+        collection.saveToDatabase(connection);
+        System.out.println("Collection created successfully with CN: " + collection.getCnr() + ".");
     }
 
     /**
      * Displays a followers menu for users to see who is following them
      * @param conn the Connection object representing the database connection
      */
-    public static void displayFollowers(Connection conn){
+    public static void displayFollowers() {
         menuLoop:
         while (true) {
-            List <User> followers = currentUser.getFollowers(conn);
+            List <User> followers = currentUser.getFollowers(connection);
             System.out.println("People following " + currentUser.getUsername() + ":");
             int page = 0;
             int numPages;
@@ -413,10 +398,10 @@ public class PTUI {
      * Displays a following menu for users to follow and unfollow other users
      * @param conn the Connection object representing the database connection
      */
-    public static void displayFollowing(Connection conn) throws SQLException{
+    public static void displayFollowing() {
         menuLoop:
         while (true) {
-            List <User> following = currentUser.getFollowing(conn);
+            List <User> following = currentUser.getFollowing(connection);
             System.out.println("Following for user " + currentUser.getUsername() + ":");
             int page = 0;
             int numPages;
@@ -449,7 +434,7 @@ public class PTUI {
             }
             switch (choice) {
                 case 0, 1, 2, 3, 4, 5 -> {
-                    if (choice + page * 6 < following.size()) currentUser.unfollow(conn, following.get(choice + page * 6).getUsername());
+                    if (choice + page * 6 < following.size()) currentUser.unfollow(connection, following.get(choice + page * 6).getUsername());
                 }
                 case 6 -> {
                     if (page > 0) {
@@ -465,7 +450,7 @@ public class PTUI {
                     System.out.print("Enter the email of the user you wish to follow: ");
                     String email = scan.nextLine().trim();
                 
-                    currentUser.follow(conn, email);
+                    currentUser.follow(connection, email);
                 }
                 case 9 -> {
                     System.out.println("Returning to main menu...");
@@ -480,7 +465,7 @@ public class PTUI {
      * Displays list of video games based on user input criteria.
      * @param conn
      */
-    private static void searchAllVideoGames(Connection conn) {
+    private static void searchAllVideoGames() {
         System.out.print("\nEnter a video game title, a part of a title, or press ENTER to skip: ");
         String title = scan.nextLine().trim();
         System.out.print("Enter a platform or press ENTER to skip: ");
@@ -506,16 +491,11 @@ public class PTUI {
         boolean ascending = ascString.equals("0");
 
         int page = 0;
-        int numPages = 0;
+        int numPages;
         searchLoop:
         while (true) {
-            List<VideoGame> videoGames = new ArrayList<>();
-            try {
-                videoGames = VideoGame.searchVideoGames(conn, title, platform, lowerReleaseDate, upperReleaseDate, developerName, lowerPrice, upperPrice, genre, sortBy, ascending);
-                numPages = (videoGames.size() / 7) + (videoGames.size() % 7 == 0 ? 0 : 1);
-            } catch (SQLException e) {
-                System.err.println("Error retrieving video games: " + e.getMessage());
-            }
+            List<VideoGame> videoGames = VideoGame.searchVideoGames(connection, title, platform, lowerReleaseDate, upperReleaseDate, developerName, lowerPrice, upperPrice, genre, sortBy, ascending);
+            numPages = (videoGames.size() / 7) + (videoGames.size() % 7 == 0 ? 0 : 1);
             int maxVideoGameTitleLength = 0;
             for (VideoGame videoGame : videoGames) {
                 if (videoGame.getTitle().length() > maxVideoGameTitleLength) {
@@ -552,7 +532,7 @@ public class PTUI {
             }
             switch (choice) {
                 case 0, 1, 2, 3, 4, 5, 6 -> {
-                    if (choice + page * 7 < videoGames.size()) interactVideoGame(conn, videoGames.get(choice + page * 7));
+                    if (choice + page * 7 < videoGames.size()) interactVideoGame(videoGames.get(choice + page * 7));
                 }
                 case 7 -> {
                     if (page > 0) {
@@ -578,7 +558,7 @@ public class PTUI {
      * @param conn the Connection object representing the database connection
      * @param videoGame the selected video game
      */
-    private static void interactVideoGame(Connection conn, VideoGame videoGame) {
+    private static void interactVideoGame(VideoGame videoGame) {
         System.out.println("\nYou selected '" + videoGame.getTitle() + "'.");
         System.out.println("Please select one of the following options:");
         System.out.println("[0] - Rate this video game");
@@ -591,15 +571,15 @@ public class PTUI {
         } catch (NumberFormatException e) {
         }
         switch (choice) {
-            case 0 -> rateVideoGame(conn, videoGame);
-            case 1 -> playVideoGame(conn, videoGame);
+            case 0 -> rateVideoGame(videoGame);
+            case 1 -> playVideoGame(videoGame);
             case 2 -> {
                 System.out.println("\nChoose the collection to add '" + videoGame.getTitle() + "' to.");
-                Collection collection = pickCollection(conn);
+                Collection collection = pickCollection();
                 if (collection == null) {
                     break;
                 }
-                addVideoGameToCollection(conn, videoGame, collection);
+                addVideoGameToCollection(videoGame, collection);
             }
             case 9 -> System.out.println("Cancelling selection...");
             default -> System.out.println("Invalid choice. Please try again.");
@@ -611,7 +591,7 @@ public class PTUI {
      * @param conn the Connection object representing the database connection
      * @param videoGame the selected video game
      */
-    private static void rateVideoGame(Connection conn, VideoGame videoGame) {
+    private static void rateVideoGame(VideoGame videoGame) {
         System.out.println("\nEnter your rating for '" + videoGame.getTitle() + "': ");
         String ratingStr = scan.nextLine().trim();
         int rating = 0;
@@ -623,7 +603,7 @@ public class PTUI {
             System.out.println("Please enter a valid rating between 1 and 5.");
             return;
         }
-        currentUser.rateVideoGame(conn, videoGame, rating);
+        currentUser.rateVideoGame(connection, videoGame, rating);
         System.out.println("Succesfully added rating.");
     }
 
@@ -632,7 +612,7 @@ public class PTUI {
      * @param conn the Connection object representing the database connection
      * @param videoGame the selected video game
      */
-    private static void playVideoGame(Connection conn, VideoGame videoGame) {
+    private static void playVideoGame(VideoGame videoGame) {
         long currentTimeMillis = System.currentTimeMillis();
         Timestamp startTimestamp = new Timestamp(currentTimeMillis);
         System.out.println("\nStarting playing '" + videoGame.getTitle() + "' at " + startTimestamp.toString() + "!");
@@ -640,7 +620,7 @@ public class PTUI {
         scan.nextLine();
         currentTimeMillis = System.currentTimeMillis();
         Timestamp endTimestamp = new Timestamp(currentTimeMillis);
-        currentUser.playVideoGame(conn, startTimestamp, endTimestamp, videoGame);
+        currentUser.playVideoGame(connection, startTimestamp, endTimestamp, videoGame);
         System.out.println("Finished playing '" + videoGame.getTitle() + "' at " + endTimestamp.toString() + ".");
     }
 
@@ -650,16 +630,16 @@ public class PTUI {
      * @param videoGame the selected video game
      * @param collection the collection the user wants to add it to
      */
-    private static void addVideoGameToCollection(Connection conn, VideoGame videoGame, Collection collection) {
-        List<VideoGame> videoGames = collection.getVideoGames(conn);
+    private static void addVideoGameToCollection(VideoGame videoGame, Collection collection) {
+        List<VideoGame> videoGames = collection.getVideoGames(connection);
         for (VideoGame vg : videoGames) {
             if (vg.getVgnr() == videoGame.getVgnr()) {
                 System.out.println("You already have this video game in your collection!");
                 return;
             }
         }
-        collection.addVideoGame(conn, videoGame.getVgnr());
-        if (!videoGame.checkPlatformOwnership(conn, currentUser)) {
+        collection.addVideoGame(connection, videoGame.getVgnr());
+        if (!videoGame.checkPlatformOwnership(connection, currentUser)) {
             System.out.println("WARNING: You do not own any platforms this video game is on.");
         }
         System.out.println("Succesfully added '" + videoGame.getTitle() + "'' to collection " + collection.getName() + ".");

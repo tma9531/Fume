@@ -7,12 +7,14 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Represents a collection of video games owned by a user.
+ */
 public class Collection {
     private int cnr;
-    private String name;
-    private String username;
-
-    // num games and total play time
+    private final String name;
+    private final String username;
+    // Dynamically updated values
     private int numGames;
     private int totalPlayTime;
 
@@ -32,26 +34,14 @@ public class Collection {
         this.username = username;
     }
 
-    /**
-     * Returns the collection number (cnr) of this collection.
-     * @return the collection number of this collection
-     */
     public int getCnr() {
         return cnr;
     }
 
-    /**
-     * Returns the name of the collection.
-     * @return the name of the collection
-     */
     public String getName() {
         return name;
     }
 
-    /**
-     * Returns the username associated with this collection.
-     * @return the username of the user who owns this collection
-     */
     public String getUsername() {
         return username;
     }
@@ -75,9 +65,9 @@ public class Collection {
     /**
      * Saves the collection information to the database.
      * @param conn the Connection object representing the database connection
-     * @throws SQLException if an error occurs while saving the collection to the database
      */
-    public void saveToDatabase(Connection conn) throws SQLException {
+    @SuppressWarnings("CallToPrintStackTrace")
+    public void saveToDatabase(Connection conn) {
         String sql = "insert into collection (name, username) values (?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, name);
@@ -85,8 +75,10 @@ public class Collection {
             pstmt.executeUpdate();
             ResultSet rs = pstmt.getGeneratedKeys();
             if (rs.next()) {
-                cnr = rs.getInt("cnr"); // Get the generated collection number
+                cnr = rs.getInt("cnr");
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
@@ -95,9 +87,9 @@ public class Collection {
      * @param conn the Connection object representing the database connection
      * @param username the username of the user whose collections are to be retrieved
      * @return a list of Collection objects representing the user's collections, or an empty list if none are found
-     * @throws SQLException if an error occurs while retrieving collections from the database
      */
-    public static List<Collection> getCollectionsByUser(Connection conn, String username) throws SQLException{
+    @SuppressWarnings("CallToPrintStackTrace")
+    public static List<Collection> getCollectionsByUser(Connection conn, String username) {
         String sql = "select c.cnr, c.name, count(v.vgnr) as num_games, " +
                         "coalesce(sum(extract(epoch from (p.end_timestamp - p.start_timestamp)) / 60), 0) as total_play_time " +
                         "from collection c " +
@@ -116,9 +108,18 @@ public class Collection {
                 collections.add(collection);
             }
             return collections;
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
+        return new ArrayList<>();
     }
 
+    /**
+     * Renames the collection in the database.
+     * @param conn the Connection object representing the database connection
+     * @param newName the new name for the collection
+     */
+    @SuppressWarnings("CallToPrintStackTrace")
     public void rename(Connection conn, String newName) {
         String sql = "UPDATE collection SET name = ? WHERE cnr = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -130,6 +131,11 @@ public class Collection {
         }
     }
 
+    /**
+     * Deletes the collection from the database.
+     * @param conn the Connection object representing the database connection
+     */
+    @SuppressWarnings("CallToPrintStackTrace")
     public void delete(Connection conn) {
         String clearRowsSql = "DELETE FROM contained_in WHERE cnr = ?";
         String sql = "DELETE FROM collection WHERE cnr = ?";
@@ -151,8 +157,8 @@ public class Collection {
      * Add a video to the collection in the database.
      * @param conn the Connection object representing the database connection
      * @param vgnr the video game to be added
-     * @throws SQLException if an error occurs while adding the video game to the collection
      */
+    @SuppressWarnings("CallToPrintStackTrace")
     public void addVideoGame(Connection conn, int vgnr) {
         String sql = "insert into contained_in (cnr, vgnr) values (?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -168,8 +174,8 @@ public class Collection {
      * Delete a video game in the collection in the database
      * @param conn the Connection object representing the database connection
      * @param vgnr the video game to be deleted
-     * @throws SQLException if an error occurs while deleting the video game from the collection
      */
+    @SuppressWarnings("CallToPrintStackTrace")
     public void deleteVideoGame(Connection conn, int vgnr) {
         String sql = "delete from contained_in where cnr = ? and vgnr = ?"; // delete the video game from the collection
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -181,6 +187,12 @@ public class Collection {
         }
     }
 
+    /**
+     * Get all video games in the collection
+     * @param conn the Connection object representing the database connection
+     * @return list of video games in the collection
+     */
+    @SuppressWarnings("CallToPrintStackTrace")
     public List<VideoGame> getVideoGames(Connection conn) {
         String sql = "SELECT * FROM video_game vg LEFT JOIN contained_in ci ON vg.vgnr = ci.vgnr LEFT JOIN collection c ON ci.cnr = c.cnr WHERE c.cnr = ?";
         List<VideoGame> videoGames = new ArrayList<>();
@@ -195,12 +207,5 @@ public class Collection {
             e.printStackTrace();
         }
         return videoGames;
-/*
- * SELECT DISTINCT vg.title, vg.esrbrating FROM video_game vg " + 
-                        "LEFT JOIN available_on ao ON vg.vgnr = ao.vgnr LEFT JOIN platform p ON ao.pfnr = p.pfnr " +
-                        "LEFT JOIN developed_by db ON vg.vgnr = db.vgnr LEFT JOIN developer d ON db.dnr = d.dnr " +
-                        "LEFT JOIN is_genre ig ON vg.vgnr = ig.vgnr LEFT JOIN genre g ON ig.gnr = g.gnr " +
-                        "WHERE 1 = 1 
- */
     }
 }

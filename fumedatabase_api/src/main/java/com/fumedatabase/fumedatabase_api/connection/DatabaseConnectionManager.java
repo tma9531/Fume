@@ -13,9 +13,9 @@ public class DatabaseConnectionManager {
      * @param user the username of the database user
      * @param password the password of the database user
      * @param lport the local port to forward to the remote PostgreSQL server
-     * @throws Exception if an error occurs while connecting to the database
      */
-    public void connect(String user, String password) throws Exception {
+    @SuppressWarnings("CallToPrintStackTrace")
+    public void connect(String user, String password) {
         System.out.println("Connecting to database...");
         int assigned_port = 5432; // Assuming lport is the port forwarded by SSH
         String driverName = "org.postgresql.Driver";
@@ -23,8 +23,16 @@ public class DatabaseConnectionManager {
         Properties props = new Properties();
         props.put("user", user);
         props.put("password", password);
-        Class.forName(driverName);
-        conn = DriverManager.getConnection(url, props);
+        try {
+            Class.forName(driverName);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        try {
+            conn = DriverManager.getConnection(url, props);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -37,12 +45,16 @@ public class DatabaseConnectionManager {
 
     /**
      * Closes the current database connection if it is open.
-     * @throws Exception if an error occurs while closing the connection
      */
-    public void disconnect() throws SQLException {
-        if (conn != null && !conn.isClosed()) {
-            conn.close();
-            System.out.println("Database connection closed");
+    @SuppressWarnings("CallToPrintStackTrace")
+    public void disconnect() {
+        try {
+            if (conn != null && !conn.isClosed()) {
+                conn.close();
+                System.out.println("Database connection closed");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 }

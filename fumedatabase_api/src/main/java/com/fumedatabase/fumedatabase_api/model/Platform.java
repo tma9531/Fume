@@ -1,23 +1,26 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-
 package com.fumedatabase.fumedatabase_api.model;
 
 /**
- *
- * @author emmettpeterson
+ * Represents a platform on which video games can exist on and users can own.
  */
 public class Platform {
 
     private String name;
     private int pnr;
 
+    /**
+     * Constructor to initialize a Platform object with the provided name
+     * @param name name of the platform ("PSP, "PS4", "PC", etc.)
+     */
     public Platform(String name) {
         this.name = name;
     }
 
+    /**
+     * Constructor to initialize a Platform object with the provided PNR and name
+     * @param pnr platform number(unique identifier)
+     * @param name name of the platform ("PSP, "PS4", "PC", etc.)
+     */
     public Platform(int pnr, String name) {
         this.pnr = pnr;
         this.name = name;
@@ -34,7 +37,4 @@ public class Platform {
     public void setName(String name){
         this.name = name;
     }
-
-    
-
 }

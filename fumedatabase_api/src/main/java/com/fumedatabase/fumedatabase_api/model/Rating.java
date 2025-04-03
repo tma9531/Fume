@@ -1,8 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-
 package com.fumedatabase.fumedatabase_api.model;
 
 import java.sql.Connection;
@@ -10,14 +5,19 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 /**
- *
- * @author emmettpeterson
+ * Represents a rating given by a user to a video game.
  */
 public class Rating {
-    private String username;
-    private int vgnr;
-    private int rating;
+    private final String username;
+    private final int vgnr;
+    private final int rating;
 
+    /**
+     * Constructor to initialize a Rating object with the provided username, video game number (vgnr), and rating.
+     * @param username username of the user who rated the game
+     * @param vgnr video game number (unique identifier)
+     * @param rating rating given by user (1 to 5)
+     */
     public Rating(String username, int vgnr, int rating) {
         this.username = username;
         this.vgnr = vgnr;
@@ -36,19 +36,20 @@ public class Rating {
         return rating;  
     }
 
-    public void saveToDatabase(Connection conn) throws SQLException {
+    /**
+     * Saves the rating to the database.
+     * @param conn the Connection object representing the database connection
+     */
+    @SuppressWarnings("CallToPrintStackTrace")
+    public void saveToDatabase(Connection conn) {
         String sql = "insert into rates (username, vgnr, rating) values (?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, username);
             pstmt.setInt(2, vgnr);
             pstmt.setInt(3, rating);
             pstmt.executeUpdate();
-            
-        }catch(SQLException e){
-            System.out.println(e);
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
-
-
-
 }
