@@ -28,7 +28,6 @@ public class PTUI {
      * Main method to establish SSH and database connections, and display the main menu.
      * @param args command line arguments (not used)
      */
-    @SuppressWarnings("CallToPrintStackTrace")
     public static void main(String[] args) {
         SSHConnectionManager sshManager = new SSHConnectionManager();
         DatabaseConnectionManager dbManager = new DatabaseConnectionManager();
@@ -48,12 +47,12 @@ public class PTUI {
             scan.close();
         } catch (JSchException e) {
             System.out.println("Bad Credentials");
-        } catch (FileNotFoundException e1) {
-            e1.printStackTrace();
+        } catch (FileNotFoundException e) {
+            System.out.println("Missing login info at " + LOGIN_DETAILS_PATH);
         } catch (IOException e1) {
-            e1.printStackTrace();
+            System.out.println("Error reading login info file.");
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("SSH connection error.");
         }
         finally {
             dbManager.disconnect();
