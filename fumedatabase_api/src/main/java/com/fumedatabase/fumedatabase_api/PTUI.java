@@ -70,15 +70,11 @@ public class PTUI {
             System.out.println("[0] - Create an account");
             System.out.println("[1] - Login");
             System.out.println("[9] - Exit");
-            int choice = 10;
-            try {
-                choice = Integer.parseInt(scan.nextLine().trim());
-            } catch (NumberFormatException e) {
-            }
+            String choice = scan.nextLine().trim();
             switch (choice) {
-                case 0 -> createUser();
-                case 1 -> login();
-                case 9 -> {
+                case "0" -> createUser();
+                case "1" -> login();
+                case "9" -> {
                     System.out.println("Exiting...");
                     return;
                 }
@@ -137,23 +133,21 @@ public class PTUI {
             System.out.println("[3] - My followers");
             System.out.println("[4] - Following");
             System.out.println("[5] - Search video games");
-            System.out.println("...");
+            System.out.println("[6] - My top 10");
+            System.out.println("---");
             System.out.println("[9] - Logout");
-            int choice = 10;
-            try {
-                choice = Integer.parseInt(scan.nextLine().trim());
-            } catch (NumberFormatException e) {
-            }
+            String choice = scan.nextLine().trim();
             switch (choice) {
-                case 0 -> displayCollectionMenu();
-                case 1 -> {
+                case "0" -> displayCollectionMenu();
+                case "1" -> {
                 }
-                case 2 -> {
+                case "2" -> {
                 }
-                case 3 -> displayFollowers();
-                case 4 -> displayFollowing();
-                case 5 -> searchAllVideoGames();
-                case 9 -> {
+                case "3" -> displayFollowers();
+                case "4" -> displayFollowing();
+                case "5" -> searchAllVideoGames();
+                // case "6" -> topTenVideoGames();
+                case "9" -> {
                     System.out.println("Logging out...");
                     currentUser = null;
                     displayLoginMenu();
@@ -201,7 +195,7 @@ public class PTUI {
                 System.out.println("[" + (i % 4) + "] - " + String.format("%-" + maxVideoGameTitleLength + "s", videoGame.getTitle()) + 
                                    "ESRB Rating: " + videoGame.getEsrbRating());
             }
-            System.out.println("...");
+            System.out.println("---");
             if (page > 0) {
                 System.out.println("[4] - Previous page");
             }
@@ -212,43 +206,40 @@ public class PTUI {
             System.out.println("[7] - Rename this collection");
             System.out.println("[8] - Delete this collection");
             System.out.println("[9] - Return to main menu");
-            int choice = 10;
-            try {
-                choice = Integer.parseInt(scan.nextLine().trim());
-            } catch (NumberFormatException e) {
-            }
+            String choice = scan.nextLine().trim();
             switch (choice) {
-                case 0, 1, 2, 3 -> {
-                    if (choice + page * 4 < videoGames.size()) collection.deleteVideoGame(connection, videoGames.get(choice + page * 4).getVgnr());
+                case "0", "1", "2", "3" -> {
+                    int choiceInt = Integer.parseInt(choice);
+                    if (choiceInt + page * 4 < videoGames.size()) collection.deleteVideoGame(connection, videoGames.get(choiceInt + page * 4).getVgnr());
                 }
-                case 4 -> {
+                case "4" -> {
                     if (page > 0) {
                         page--;
                     }
                 }
-                case 5 -> {
+                case "5" -> {
                     if (page < numPages - 1) {
                         page++;
                     }
                 }
-                case 6 -> {
+                case "6" -> {
                     Random rand = new Random();
                     VideoGame randomVideoGame = videoGames.get(rand.nextInt(videoGames.size()));
                     System.out.print("Your random game is '" + randomVideoGame.getTitle() + "''.");
                     playVideoGame(randomVideoGame);
                 }
-                case 7 -> {
+                case "7" -> {
                     System.out.print("Enter a new name for this collection: ");
                     String newName = scan.nextLine().trim();
                     collection.rename(connection, newName);
                     System.out.println("Renamed collection!");
                 }
-                case 8 -> {
+                case "8" -> {
                     collection.delete(connection);
                     System.out.println("Deleted collection!");
                     break gamesInCollectionLoop;
                 }
-                case 9 -> {
+                case "9" -> {
                     System.out.println("Returning to main menu...");
                     break gamesInCollectionLoop;
                 }
@@ -291,7 +282,7 @@ public class PTUI {
                                    String.format("%-" + maxCollectionNumGamesLength + "s", collection.getNumGames() + " games") +
                                    (collection.getTotalPlayTime() / 60) + ":" + (collection.getTotalPlayTime() % 60) + " play time");
             }
-            System.out.println("...");
+            System.out.println("---");
             if (page > 0) {
                 System.out.println("[6] - Previous page");
             }
@@ -300,23 +291,20 @@ public class PTUI {
             }
             System.out.println("[8] - Create new collection");
             System.out.println("[9] - Cancel");
-            int choice = 10;
-            try {
-                choice = Integer.parseInt(scan.nextLine().trim());
-            } catch (NumberFormatException e) {
-            }
+            String choice = scan.nextLine().trim();
             switch (choice) {
-                case 0, 1, 2, 3, 4, 5 -> {
-                    if (choice + page * 6 < collections.size()) return collections.get(choice + page * 6);
+                case "0", "1", "2", "3", "4", "5" -> {
+                    int choiceInt = Integer.parseInt(choice);
+                    if (choiceInt + page * 6 < collections.size()) return collections.get(choiceInt + page * 6);
                 }
-                case 6 -> {
+                case "6" -> {
                     if (page > 0) page--;
                 }
-                case 7 -> {
+                case "7" -> {
                     if (page < numPages - 1) page++;
                 }
-                case 8 -> createCollection();
-                case 9 -> {
+                case "8" -> createCollection();
+                case "9" -> {
                     System.out.println("Cancelling...");
                     return null;
                 }
@@ -345,7 +333,7 @@ public class PTUI {
         menuLoop:
         while (true) {
             List <User> followers = currentUser.getFollowers(connection);
-            System.out.println("People following " + currentUser.getUsername() + ":");
+            System.out.println("You have " + followers.size() + " follower" + (followers.size() == 1 ? "" : "s") + ".");
             int page = 0;
             int numPages;
             numPages = (followers.size() / 7) + (followers.size() % 7 == 0 ? 0 : 1);
@@ -358,9 +346,9 @@ public class PTUI {
                     break;
                 }
                 User f = followers.get(i);
-                System.out.println("[" + i + "] - " + f.getUsername());
+                System.out.println("    - " + f.getUsername());
             }
-            System.out.println("...");
+            System.out.println("---");
             if (page > 0) {
                 System.out.println("[7] - Previous page");
             }
@@ -368,23 +356,19 @@ public class PTUI {
                 System.out.println("[8] - Next page");
             }
             System.out.println("[9] - Return to main menu");
-            int choice = 10;
-            try {
-                choice = Integer.parseInt(scan.nextLine().trim());
-            } catch (NumberFormatException e) {
-            }
+            String choice = scan.nextLine().trim();
             switch (choice) {
-                case 7 -> {
+                case "7" -> {
                     if (page > 0) {
                         page--;
                     }
                 }
-                case 8 -> {
+                case "8" -> {
                     if (page < numPages - 1) {
                         page++;
                     }
                 }
-                case 9 -> {
+                case "9" -> {
                     System.out.println("Returning to main menu...");
                     break menuLoop;
                 }
@@ -401,7 +385,7 @@ public class PTUI {
         menuLoop:
         while (true) {
             List <User> following = currentUser.getFollowing(connection);
-            System.out.println("Following for user " + currentUser.getUsername() + ":");
+            System.out.println("You are following " + following.size() + (following.size() == 1 ? " person." : " people."));
             int page = 0;
             int numPages;
             System.out.println("Select the follower you wish to unfollow.");
@@ -417,7 +401,7 @@ public class PTUI {
                 User f = following.get(i);
                 System.out.println("[" + i + "] - " + f.getUsername());
             }
-            System.out.println("...");
+            System.out.println("---");
             if (page > 0) {
                 System.out.println("[6] - Previous page");
             }
@@ -426,32 +410,29 @@ public class PTUI {
             }
             System.out.println("[8] - Follow user");
             System.out.println("[9] - Return to main menu");
-            int choice = 10;
-            try {
-                choice = Integer.parseInt(scan.nextLine().trim());
-            } catch (NumberFormatException e) {
-            }
+            String choice = scan.nextLine().trim();
             switch (choice) {
-                case 0, 1, 2, 3, 4, 5 -> {
-                    if (choice + page * 6 < following.size()) currentUser.unfollow(connection, following.get(choice + page * 6).getUsername());
+                case "0", "1", "2", "3", "4", "5" -> {
+                    int choiceInt = Integer.parseInt(choice);
+                    if (choiceInt + page * 6 < following.size()) currentUser.unfollow(connection, following.get(choiceInt + page * 6).getUsername());
                 }
-                case 6 -> {
+                case "6" -> {
                     if (page > 0) {
                         page--;
                     }
                 }
-                case 7 -> {
+                case "7" -> {
                     if (page < numPages - 1) {
                         page++;
                     }
                 }
-                case 8 -> {
+                case "8" -> {
                     System.out.print("Enter the email of the user you wish to follow: ");
                     String email = scan.nextLine().trim();
                 
                     currentUser.follow(connection, email);
                 }
-                case 9 -> {
+                case "9" -> {
                     System.out.println("Returning to main menu...");
                     break menuLoop;
                 }
@@ -516,7 +497,7 @@ public class PTUI {
                 System.out.println("[" + (i % 7) + "] - " + String.format("%-" + maxVideoGameTitleLength + "s", videoGame.getTitle()) + 
                                    "ESRB Rating: " + videoGame.getEsrbRating());
             }
-            System.out.println("...");
+            System.out.println("---");
             if (page > 0) {
                 System.out.println("[7] - Previous page");
             }
@@ -524,26 +505,23 @@ public class PTUI {
                 System.out.println("[8] - Next page");
             }
             System.out.println("[9] - Return to main menu");
-            int choice = 10;
-            try {
-                choice = Integer.parseInt(scan.nextLine().trim());
-            } catch (NumberFormatException e) {
-            }
+            String choice = scan.nextLine().trim();
             switch (choice) {
-                case 0, 1, 2, 3, 4, 5, 6 -> {
-                    if (choice + page * 7 < videoGames.size()) interactVideoGame(videoGames.get(choice + page * 7));
+                case "0", "1", "2", "3", "4", "5", "6" -> {
+                    int choiceInt = Integer.parseInt(choice);
+                    if (choiceInt + page * 7 < videoGames.size()) interactVideoGame(videoGames.get(choiceInt + page * 7));
                 }
-                case 7 -> {
+                case "7" -> {
                     if (page > 0) {
                         page--;
                     }
                 }
-                case 8 -> {
+                case "8" -> {
                     if (page < numPages - 1) {
                         page++;
                     }
                 }
-                case 9 -> {
+                case "9" -> {
                     System.out.println("Returning to main menu...");
                     break searchLoop;
                 }
@@ -564,15 +542,11 @@ public class PTUI {
         System.out.println("[1] - Play this video game");
         System.out.println("[2] - Add this video game to a collection");
         System.out.println("[9] - Cancel");
-        int choice = 10;
-        try {
-            choice = Integer.parseInt(scan.nextLine().trim());
-        } catch (NumberFormatException e) {
-        }
+        String choice = scan.nextLine().trim();
         switch (choice) {
-            case 0 -> rateVideoGame(videoGame);
-            case 1 -> playVideoGame(videoGame);
-            case 2 -> {
+            case "0" -> rateVideoGame(videoGame);
+            case "1" -> playVideoGame(videoGame);
+            case "2" -> {
                 System.out.println("\nChoose the collection to add '" + videoGame.getTitle() + "' to.");
                 Collection collection = pickCollection();
                 if (collection == null) {
@@ -580,7 +554,7 @@ public class PTUI {
                 }
                 addVideoGameToCollection(videoGame, collection);
             }
-            case 9 -> System.out.println("Cancelling selection...");
+            case "9" -> System.out.println("Cancelling selection...");
             default -> System.out.println("Invalid choice. Please try again.");
         }
     }
@@ -643,4 +617,14 @@ public class PTUI {
         }
         System.out.println("Succesfully added '" + videoGame.getTitle() + "'' to collection " + collection.getName() + ".");
     }
+
+    // private static void topTenVideoGames() {
+    //     System.out.println("\nYour top 10 video games:");
+    //     String sortType = "playtime";
+    //     List<VideoGame> topTen = currentUser.getTopTenVideoGames(connection, sortType);
+    //     for (int i = 0; i < topTen.size(); i++) {
+    //         VideoGame videoGame = topTen.get(i);
+    //         System.out.println("1.    " + videoGame.getTitle() + " - " + videoGame.getPlayTime() / 60 + ":" + videoGame.getPlayTime() % 60);
+    //     }
+    // }
 }
