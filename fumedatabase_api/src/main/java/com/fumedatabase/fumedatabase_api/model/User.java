@@ -235,4 +235,61 @@ public class User {
             e.printStackTrace();
         }
     }
+
+    /**
+     * Gets recommended video games based on the user's most played game
+     * @param conn the Connection object representing the database connection
+     * @return list of recommended video games
+     */
+    @SuppressWarnings("CallToPrintStackTrace")
+    public ArrayList<VideoGame> getRecommendations(Connection conn){
+        String sql1 = """
+                      select p.vgnr
+                      from plays p
+                          inner join is_genre ig on p.vgnr = ig.vgnr
+                      where username = ?
+                      order by (end_timestamp - start_timestamp) desc
+                      limit 1;
+                      """;
+        int mostPlayedVGNR = -1;
+        try (PreparedStatement pstmt = conn.prepareStatement(sql1)) {
+            pstmt.setString(1, this.username);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                mostPlayedVGNR = rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        if (mostPlayedVGNR == -1) {
+            return null; // Error occurred
+        }
+        //TODO: Make this query return distinct vgnr, title, and esrbRating.
+        String sql2 = """
+                      select title
+                      from (
+                         select distinct similar_players.username,
+                              title,
+                              date_part('days', (end_timestamp - start_timestamp)) * 24 +
+                              date_part('hours', (end_timestamp - start_timestamp)) as playtime
+                         from (
+                             select distinct username
+                             from plays p
+                                    inner join is_genre ig on p.vgnr = ig.vgnr
+                             where p.vgnr = ?
+                         ) as similar_players
+                             inner join plays p on p.username = similar_players.username
+                             inner join is_genre ig on ig.vgnr = p.vgnr
+                             inner join video_game v on v.vgnr = p.vgnr
+                         order by playtime desc
+                      ) as options
+                      limit 20;""";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql2)) {
+            pstmt.setInt(1, mostPlayedVGNR);
+            ResultSet rs = pstmt.executeQuery();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null; // Error occurred
+    }
 }

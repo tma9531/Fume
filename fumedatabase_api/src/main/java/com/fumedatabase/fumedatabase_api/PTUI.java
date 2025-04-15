@@ -269,6 +269,7 @@ public class PTUI {
             }
             maxCollectionNameLength += 2;
             maxCollectionNumGamesLength += 2 + 6;
+            System.out.println(collections.size() + " total collections.");
             System.out.println("Page (" + (page + 1) + "/" + numPages + ")");
             if (collections.isEmpty()) {
                 System.out.println("You have no collections.");
