@@ -6,7 +6,9 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
 
-// get rid of statics when put into user class.
+/**
+ * The PasswordManager class provides methods for hashing and verifying passwords.
+ */
 public class PasswordManager {
     /**
      * verifies the password of the user
