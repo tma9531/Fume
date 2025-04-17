@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 public class User {
     private final String username;
     private final String password;
+    private final String hashedPassword;
     private LocalDate creationDate;
     private LocalDate lastAccessDate;
 
@@ -28,6 +29,8 @@ public class User {
         this.password = password;
         this.creationDate = LocalDate.now();
         this.lastAccessDate = LocalDate.now();
+        String salt = PasswordManager.generateSalt(username);
+        this.hashedPassword = PasswordManager.hashPassword(password, salt);
     }
 
     /**
@@ -37,6 +40,7 @@ public class User {
     public User(String username) {
         this.username = username;
         this.password = null;
+        this.hashedPassword = null;
     }
 
     public String getUsername() {
@@ -64,7 +68,7 @@ public class User {
         String sql = "insert into users (username, password, creationdate, lastaccessdate) values (?, ?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, username);
-            pstmt.setString(2, password);
+            pstmt.setString(2, hashedPassword);
             pstmt.setDate(3, java.sql.Date.valueOf(creationDate));
             pstmt.setDate(4, java.sql.Date.valueOf(lastAccessDate));
             pstmt.executeUpdate();
@@ -82,18 +86,20 @@ public class User {
      */
     @SuppressWarnings("CallToPrintStackTrace")
     public static User verifyCredentials(Connection conn, String username, String password) {
-        String sql = "SELECT * FROM users WHERE username = ? AND password = ?";
+        String sql = "SELECT * FROM users WHERE username = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, username);
-            pstmt.setString(2, password);
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) {
-                return new User(
-                    rs.getString("username"),
-                    rs.getString("password")
-                );
-            } else {
-                return null; // Invalid credentials
+                String storedHashedPassword = rs.getString("password");
+                boolean isValid = PasswordManager.verifyPassword(username, password, storedHashedPassword);
+                if (isValid) {
+                    return new User(
+                    username, storedHashedPassword);
+                }
+                else {
+                    return null;
+                } // Invalid credentials
             }
         } catch (SQLException e) {
             e.printStackTrace();
