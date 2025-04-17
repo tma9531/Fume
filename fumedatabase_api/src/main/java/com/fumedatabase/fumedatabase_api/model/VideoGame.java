@@ -185,4 +185,94 @@ public class VideoGame {
         }
         return false;
     }
+
+    /**
+     * Gets a list of popular games based on the people a user follows.
+     * If no user is provided, it returns a list of popular games based on activity in the last 90 days.
+     * @param conn the Connection object representing the database connection
+     * @param user user to get popular games for
+     * @return list of popular video games
+     */
+    @SuppressWarnings("CallToPrintStackTrace")
+    public static ArrayList<VideoGame> getPopularGames(Connection conn, User user) {
+        String sqlActivity = """
+                             select v.vgnr as vgnr_main, title, v.esrbrating as esrbrating, (end_timestamp - start_timestamp) as playtime
+                             from plays p
+                                inner join video_game v on v.vgnr = p.vgnr
+                                inner join is_genre ig on v.vgnr = ig.vgnr
+                             where end_timestamp > current_date - 90
+                             order by playtime desc
+                             limit 20;""";
+        String sqlFollowed = """
+                             select v.vgnr as vgnr_main, title, esrbrating, sum(end_timestamp - start_timestamp) as playtime
+                             from (
+                                  select userbeingfollowed
+                                  from follows
+                                  where userfollowing = ? ) as following
+                                  inner join plays p on following.userbeingfollowed = p.username
+                                  inner join is_genre ig on p.vgnr = ig.vgnr
+                                  inner join video_game v on v.vgnr = p.vgnr
+                             group by v.vgnr, title
+                             order by playtime desc
+                             limit 20;
+                             """;
+        if (user == null) {
+            try (PreparedStatement pstmt = conn.prepareStatement(sqlActivity)) {
+                ResultSet rs = pstmt.executeQuery();
+                ArrayList<VideoGame> videoGames = new ArrayList<>();
+                while (rs.next()) {
+                    VideoGame game = new VideoGame(rs.getInt("vgnr_main"), rs.getString("title"), rs.getString("esrbrating"));
+                    videoGames.add(game);
+                }
+                return videoGames;
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        } else {
+            try (PreparedStatement pstmt = conn.prepareStatement(sqlFollowed)) {
+                pstmt.setString(1, user.getUsername());
+                ResultSet rs = pstmt.executeQuery();
+                ArrayList<VideoGame> videoGames = new ArrayList<>();
+                while (rs.next()) {
+                    VideoGame game = new VideoGame(rs.getInt("vgnr_main"), rs.getString("title"), rs.getString("esrbrating"));
+                    videoGames.add(game);
+                }
+                return videoGames;
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Gets a list of the 5 newest releases from the last 30 days.
+     * @param conn the Connection object representing the database connection
+     * @return list of the 5 newest video game releases
+     */
+    @SuppressWarnings("CallToPrintStackTrace")
+    public static ArrayList<VideoGame> getNewReleases(Connection conn) {
+        String sql = """
+                     select v.vgnr as vgnr_main, title, v.esrbrating as esrbrating, sum(end_timestamp - start_timestamp) as playtime
+                     from plays p
+                        inner join video_game v on v.vgnr = p.vgnr
+                        inner join is_genre ig on v.vgnr = ig.vgnr
+                        inner join available_on ao on ao.vgnr = v.vgnr
+                     where ao.game_release_date > current_date - 30
+                     group by v.vgnr, title, v.esrbrating
+                     order by playtime desc
+                     limit 5;
+                     """;
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            ResultSet rs = pstmt.executeQuery();
+            ArrayList<VideoGame> videoGames = new ArrayList<>();
+            while (rs.next()) {
+                videoGames.add(new VideoGame(rs.getInt("vgnr_main"), rs.getString("title"), rs.getString("esrbrating")));
+            }
+            return videoGames;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

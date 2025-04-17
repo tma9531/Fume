@@ -6,6 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.Timestamp;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
@@ -62,7 +63,6 @@ public class PTUI {
 
     /**
      * Displays a login menu for users to create an account or log in
-     * @param conn the Connection object representing the database connection
      */
     private static void displayLoginMenu() {
         while (currentUser == null) {
@@ -88,7 +88,6 @@ public class PTUI {
 
     /**
      * Creates a new user by prompting for username, password, and email.
-     * @param conn the Connection object representing the database connection
      */
     private static void createUser() {
         System.out.print("Enter username: ");
@@ -102,7 +101,6 @@ public class PTUI {
 
     /**
      * Logs in as an existing user with a username and password.
-     * @param conn
      */
     private static void login() {
         System.out.print("Enter username: ");
@@ -120,7 +118,6 @@ public class PTUI {
 
     /**
      * Displays a main menu for users to do various actions
-     * @param conn the Connection object representing the database connection
      */
     private static void displayMainMenu() {
         while (true) {
@@ -128,25 +125,25 @@ public class PTUI {
             System.out.println("Press the number corresponding to your choice: ");
             System.out.println("Main Menu: ");
             System.out.println("[0] - My collections");
-            System.out.println("[1] - My ratings");
-            System.out.println("[2] - My platforms");
+            System.out.println("[1] - My top 10 games");
+            System.out.println("[2] - My recommendations");
             System.out.println("[3] - My followers");
             System.out.println("[4] - Following");
             System.out.println("[5] - Search video games");
-            System.out.println("[6] - My top 10");
+            System.out.println("[6] - Popular games");
+            System.out.println("[7] - New releases");
             System.out.println("---");
             System.out.println("[9] - Logout");
             String choice = scan.nextLine().trim();
             switch (choice) {
                 case "0" -> displayCollectionMenu();
-                case "1" -> {
-                }
-                case "2" -> {
-                }
+                case "1" -> topTenVideoGames();
+                case "2" -> recommendVideoGames();
                 case "3" -> displayFollowers();
                 case "4" -> displayFollowing();
                 case "5" -> searchAllVideoGames();
-                // case "6" -> topTenVideoGames();
+                case "6" -> displayPopularGames();
+                case "7" -> displayNewReleases();
                 case "9" -> {
                     System.out.println("Logging out...");
                     currentUser = null;
@@ -160,7 +157,6 @@ public class PTUI {
 
     /**
      * Displays a collection menu for users to do various collection-related actions
-     * @param conn the Connection object representing the database connection
      */
     private static void displayCollectionMenu() {
         System.out.println("\nMy collections:");
@@ -250,7 +246,6 @@ public class PTUI {
 
     /**
      * Displays a throwaway collection selection menu
-     * @param conn the Connection object representing the database connection
      */
     private static Collection pickCollection() {
         int page = 0, numPages;
@@ -281,7 +276,7 @@ public class PTUI {
                 Collection collection = collections.get(i);
                 System.out.println("[" + (i % 6) + "] - " + String.format("%-" + maxCollectionNameLength + "s", collection.getName()) + 
                                    String.format("%-" + maxCollectionNumGamesLength + "s", collection.getNumGames() + " games") +
-                                   (collection.getTotalPlayTime() / 60) + ":" + (collection.getTotalPlayTime() % 60) + " play time");
+                                   (collection.getTotalPlayTime() / 60) + ":" + String.format("%02d", collection.getTotalPlayTime() % 60) + " play time");
             }
             System.out.println("---");
             if (page > 0) {
@@ -316,7 +311,6 @@ public class PTUI {
 
     /**
      * Create a new collection by prompting for the collection name.
-     * @param conn the Connection object representing the database connection
      */
     private static void createCollection() {
         System.out.print("Enter collection name: ");
@@ -328,7 +322,6 @@ public class PTUI {
 
     /**
      * Displays a followers menu for users to see who is following them
-     * @param conn the Connection object representing the database connection
      */
     public static void displayFollowers() {
         menuLoop:
@@ -380,7 +373,6 @@ public class PTUI {
 
     /**
      * Displays a following menu for users to follow and unfollow other users
-     * @param conn the Connection object representing the database connection
      */
     public static void displayFollowing() {
         menuLoop:
@@ -444,7 +436,6 @@ public class PTUI {
 
     /**
      * Displays list of video games based on user input criteria.
-     * @param conn
      */
     private static void searchAllVideoGames() {
         System.out.print("\nEnter a video game title, a part of a title, or press ENTER to skip: ");
@@ -533,7 +524,6 @@ public class PTUI {
 
     /**
      * Displays interaction options after a user selects a video game.
-     * @param conn the Connection object representing the database connection
      * @param videoGame the selected video game
      */
     private static void interactVideoGame(VideoGame videoGame) {
@@ -562,7 +552,6 @@ public class PTUI {
 
     /**
      * Rating selection for a user to rate a video game.
-     * @param conn the Connection object representing the database connection
      * @param videoGame the selected video game
      */
     private static void rateVideoGame(VideoGame videoGame) {
@@ -600,7 +589,6 @@ public class PTUI {
 
     /**
      * Menu to add a video game to a user's existing collection
-     * @param conn the Connection object representing the database connection
      * @param videoGame the selected video game
      * @param collection the collection the user wants to add it to
      */
@@ -619,13 +607,198 @@ public class PTUI {
         System.out.println("Succesfully added '" + videoGame.getTitle() + "'' to collection " + collection.getName() + ".");
     }
 
-    // private static void topTenVideoGames() {
-    //     System.out.println("\nYour top 10 video games:");
-    //     String sortType = "playtime";
-    //     List<VideoGame> topTen = currentUser.getTopTenVideoGames(connection, sortType);
-    //     for (int i = 0; i < topTen.size(); i++) {
-    //         VideoGame videoGame = topTen.get(i);
-    //         System.out.println("1.    " + videoGame.getTitle() + " - " + videoGame.getPlayTime() / 60 + ":" + videoGame.getPlayTime() % 60);
-    //     }
-    // }
+    private static void topTenVideoGames() {
+        System.out.println("\nYour top 10 video games sorted by playtime:");
+        LinkedHashMap<String, Integer> topTen = currentUser.getTopTenVideoGames(connection);
+        if (topTen == null || topTen.isEmpty()) {
+            System.out.println("You have no video games in your collection.");
+        } else {
+            int maxVideoGameTitleLength = 0;
+            for (String title : topTen.keySet()) {
+                if (title.length() > maxVideoGameTitleLength) {
+                    maxVideoGameTitleLength = title.length();
+                }
+            }
+            maxVideoGameTitleLength += 2;
+            for (int i = 0; i < topTen.size(); i++) {
+                String title = topTen.keySet().toArray()[i].toString();
+                System.out.println(String.format("%2d.", i+1) + "    " + String.format("%-" + maxVideoGameTitleLength + "s", title) + 
+                                   (topTen.get(title) / 3600) + ":" + String.format("%02d", (topTen.get(title) % 3600) / 60) + " play time");
+            }
+        }
+        System.out.println("Press ENTER to return to main menu");
+        scan.nextLine();
+        System.out.println("Returning to main menu...");
+    }
+
+    /**
+     * Displays a list of recommended video games for the user.
+     */
+    private static void recommendVideoGames() {
+        List<VideoGame> videoGames = currentUser.getRecommendations(connection);
+        int page = 0;
+        int numPages;
+        recommendLoop:
+        while (true) {
+            numPages = (videoGames.size() / 7) + (videoGames.size() % 7 == 0 ? 0 : 1);
+            int maxVideoGameTitleLength = 0;
+            for (VideoGame videoGame : videoGames) {
+                if (videoGame.getTitle().length() > maxVideoGameTitleLength) {
+                    maxVideoGameTitleLength = videoGame.getTitle().length();
+                }
+            }
+            maxVideoGameTitleLength += 2;
+            System.out.println("\nSelect the game you wish to interact with.");
+            System.out.println("Recommended video games:");
+            System.out.println("Page (" + (page + 1) + "/" + numPages + ")");
+            if (videoGames.isEmpty()) {
+                System.out.println("There was an error retrieving your recommendations. Have you played any games?");
+            }
+            for (int i = 7 * page; i < 7 * page + 7; i++) {
+                if (i >= videoGames.size()) {
+                    break;
+                }
+                VideoGame videoGame = videoGames.get(i);
+                System.out.println("[" + (i % 7) + "] - " + String.format("%-" + maxVideoGameTitleLength + "s", videoGame.getTitle()) + 
+                                   "ESRB Rating: " + videoGame.getEsrbRating());
+            }
+            System.out.println("---");
+            if (page > 0) {
+                System.out.println("[7] - Previous page");
+            }
+            if (page < numPages - 1) {
+                System.out.println("[8] - Next page");
+            }
+            System.out.println("[9] - Return to main menu");
+            String choice = scan.nextLine().trim();
+            switch (choice) {
+                case "0", "1", "2", "3", "4", "5", "6" -> {
+                    int choiceInt = Integer.parseInt(choice);
+                    if (choiceInt + page * 7 < videoGames.size()) interactVideoGame(videoGames.get(choiceInt + page * 7));
+                }
+                case "7" -> {
+                    if (page > 0) {
+                        page--;
+                    }
+                }
+                case "8" -> {
+                    if (page < numPages - 1) {
+                        page++;
+                    }
+                }
+                case "9" -> {
+                    System.out.println("Returning to main menu...");
+                    break recommendLoop;
+                }
+                default -> System.out.println("Invalid choice. Please try again.");
+            }
+        }
+    }
+
+    /**
+     * Displays a list of popular video games based on user input criteria.
+     */
+    private static void displayPopularGames() {
+        boolean accordingToActivity = true;
+        int page = 0;
+        int numPages;
+        popularLoop:
+        while (true) {
+            List<VideoGame> videoGames;
+            if (accordingToActivity) {
+                videoGames = VideoGame.getPopularGames(connection, null);
+            } else {
+                videoGames = VideoGame.getPopularGames(connection, currentUser);
+            }
+            numPages = (videoGames.size() / 5) + (videoGames.size() % 5 == 0 ? 0 : 1);
+            int maxVideoGameTitleLength = 0;
+            for (VideoGame videoGame : videoGames) {
+                if (videoGame.getTitle().length() > maxVideoGameTitleLength) {
+                    maxVideoGameTitleLength = videoGame.getTitle().length();
+                }
+            }
+            maxVideoGameTitleLength += 2;
+            System.out.println("\nSelect the game you wish to interact with.");
+            System.out.println("Top 20 popular games according to" + (accordingToActivity ? " recent activity:" : " people I follow:"));
+            System.out.println("Page (" + (page + 1) + "/" + numPages + ")");
+            if (videoGames.isEmpty()) {
+                System.out.println("There was an error retrieving your recommendations. Have you played any games?");
+            }
+            for (int i = 5 * page; i < 5 * page + 5; i++) {
+                if (i >= videoGames.size()) {
+                    break;
+                }
+                VideoGame videoGame = videoGames.get(i);
+                System.out.println("[" + (i % 5) + "] - " + String.format("%2d.  ", i+1) + String.format("%-" + maxVideoGameTitleLength + "s", videoGame.getTitle()) + 
+                                   "ESRB Rating: " + videoGame.getEsrbRating());
+            }
+            System.out.println("---");
+            System.out.println("[5] - Sort by recent activity (last 90 days)");
+            System.out.println("[6] - Sort according to people I follow");
+            if (page > 0) {
+                System.out.println("[7] - Previous page");
+            }
+            if (page < numPages - 1) {
+                System.out.println("[8] - Next page");
+            }
+            System.out.println("[9] - Return to main menu");
+            String choice = scan.nextLine().trim();
+            switch (choice) {
+                case "0", "1", "2", "3", "4" -> {
+                    int choiceInt = Integer.parseInt(choice);
+                    if (choiceInt + page * 5 < videoGames.size()) interactVideoGame(videoGames.get(choiceInt + page * 5));
+                }
+                case "5" -> {
+                    accordingToActivity = true;
+                    page = 0;
+                }
+                case "6" -> {
+                    accordingToActivity = false;
+                    page = 0;
+                }
+                case "7" -> {
+                    if (page > 0) {
+                        page--;
+                    }
+                }
+                case "8" -> {
+                    if (page < numPages - 1) {
+                        page++;
+                    }
+                }
+                case "9" -> {
+                    System.out.println("Returning to main menu...");
+                    break popularLoop;
+                }
+                default -> System.out.println("Invalid choice. Please try again.");
+            }
+        }
+    }
+
+    /**
+     * Displays a list of 5 new releases from the last 30 days.
+     */
+    private static void displayNewReleases() {
+        System.out.println("\n5 newest releases from the last 30 days:");
+        List<VideoGame> newReleases = VideoGame.getNewReleases(connection);
+        if (newReleases == null || newReleases.isEmpty()) {
+            System.out.println("No new releases found.");
+        } else {
+            int maxVideoGameTitleLength = 0;
+            for (VideoGame videoGame : newReleases) {
+                if (videoGame.getTitle().length() > maxVideoGameTitleLength) {
+                    maxVideoGameTitleLength = videoGame.getTitle().length();
+                }
+            }
+            maxVideoGameTitleLength += 2;
+            for (int i = 0; i < newReleases.size(); i++) {
+                VideoGame videoGame = newReleases.get(i);
+                System.out.println(String.format("%2d.", i+1) + "    " + String.format("%-" + maxVideoGameTitleLength + "s", videoGame.getTitle()) + 
+                                   "ESRB Rating: " + videoGame.getEsrbRating());
+            }
+        }
+        System.out.println("Press ENTER to return to main menu");
+        scan.nextLine();
+        System.out.println("Returning to main menu...");
+    }
 }

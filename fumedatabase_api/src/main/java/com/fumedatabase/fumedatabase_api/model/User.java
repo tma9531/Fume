@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 
 /**
  * Represents a user in the system.
@@ -237,12 +238,41 @@ public class User {
     }
 
     /**
-     * Gets recommended video games based on the user's most played game
+     * Gets the top 10 video games played by the user by playtime
      * @param conn the Connection object representing the database connection
-     * @return list of recommended video games
+     * @return list of top 10 video games played by the user, or less if there are not enough games
      */
     @SuppressWarnings("CallToPrintStackTrace")
-    public ArrayList<VideoGame> getRecommendations(Connection conn){
+    public LinkedHashMap<String, Integer> getTopTenVideoGames(Connection conn) {
+        String sql = """
+                        SELECT vg.vgnr as vgnr, vg.title as title, vg.esrbrating as esrbrating, SUM(EXTRACT(EPOCH FROM (p.end_timestamp - p.start_timestamp))) AS total_playtime_seconds
+                        FROM plays p
+                        JOIN video_game vg ON p.vgnr = vg.vgnr
+                        WHERE p.username = ?
+                        GROUP BY vg.vgnr, vg.title, vg.esrbrating
+                        ORDER BY total_playtime_seconds DESC
+                        LIMIT 10;""";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, this.username);
+            ResultSet rs = pstmt.executeQuery();
+            LinkedHashMap<String, Integer> videoGameTimes = new LinkedHashMap<>();
+            while (rs.next()) {
+                videoGameTimes.put(rs.getString("title"), rs.getInt("total_playtime_seconds"));
+            }
+            return videoGameTimes;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * Gets recommended video games based on the user's most played game
+     * @param conn the Connection object representing the database connection
+     * @return list of recommended video games, empty if error occurred
+     */
+    @SuppressWarnings("CallToPrintStackTrace")
+    public ArrayList<VideoGame> getRecommendations(Connection conn) {
         String sql1 = """
                       select p.vgnr
                       from plays p
@@ -262,34 +292,43 @@ public class User {
             e.printStackTrace();
         }
         if (mostPlayedVGNR == -1) {
-            return null; // Error occurred
+            return new ArrayList<>();
         }
-        //TODO: Make this query return distinct vgnr, title, and esrbRating.
         String sql2 = """
-                      select title
+                      select v.vgnr as vgnr, v.title as title, v.esrbrating as esrbrating
                       from (
-                         select distinct similar_players.username,
-                              title,
-                              date_part('days', (end_timestamp - start_timestamp)) * 24 +
-                              date_part('hours', (end_timestamp - start_timestamp)) as playtime
-                         from (
-                             select distinct username
-                             from plays p
-                                    inner join is_genre ig on p.vgnr = ig.vgnr
-                             where p.vgnr = ?
-                         ) as similar_players
-                             inner join plays p on p.username = similar_players.username
-                             inner join is_genre ig on ig.vgnr = p.vgnr
-                             inner join video_game v on v.vgnr = p.vgnr
-                         order by playtime desc
+                         select vp.vgnr, sum(playtime) as sum
+                         from (select distinct v.vgnr,
+                                  date_part('days', (end_timestamp - start_timestamp)) * 24 +
+                                  date_part('hours', (end_timestamp - start_timestamp)) as playtime
+                             from (
+                                 select distinct username
+                                 from plays p
+                                        inner join is_genre ig on p.vgnr = ig.vgnr
+                                 where p.vgnr = ?
+                             ) as similar_players
+                                 inner join plays p on p.username = similar_players.username
+                                 inner join is_genre ig on ig.vgnr = p.vgnr
+                                 inner join video_game v on v.vgnr = p.vgnr
+                             order by playtime desc) as vp
+                         group by vp.vgnr
+                         order by sum desc
                       ) as options
-                      limit 20;""";
+                         inner join video_game v on v.vgnr = options.vgnr
+                      limit 10;
+                      """;
         try (PreparedStatement pstmt = conn.prepareStatement(sql2)) {
             pstmt.setInt(1, mostPlayedVGNR);
+            ArrayList<VideoGame> videoGames = new ArrayList<>();
             ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                VideoGame videoGame = new VideoGame(rs.getInt("vgnr"), rs.getString("title"), rs.getString("esrbrating"));
+                videoGames.add(videoGame);
+            }
+            return videoGames;
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return null; // Error occurred
+        return new ArrayList<>();
     }
 }
